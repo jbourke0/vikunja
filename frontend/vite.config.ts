@@ -194,6 +194,17 @@ function getBuildConfig(env: Record<string, string>) {
 						},
 					],
 					start_url: '.',
+					// Lets the installed app appear in Android's (and desktop Chrome's) share menu. A GET
+					// keeps it simple: the browser opens /save with the shared link in the query string.
+					share_target: {
+						action: './save',
+						method: 'GET',
+						params: {
+							title: 'title',
+							text: 'text',
+							url: 'url',
+						},
+					},
 					display: 'standalone',
 					background_color: '#000000',
 					shortcuts: [

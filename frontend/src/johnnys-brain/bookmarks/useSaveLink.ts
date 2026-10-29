@@ -30,10 +30,10 @@ export type SavedLink = {bookmark: BookmarkResponse, alreadySaved: boolean}
 export function useSaveLink() {
 	const createMutation = useCreateBookmarkMutation()
 
-	async function save(rawUrl: string, status: BookmarkStatus = 'to_read'): Promise<SavedLink | undefined> {
+	async function save(rawUrl: string, status: BookmarkStatus = 'to_read', title = ''): Promise<SavedLink | undefined> {
 		const url = withScheme(rawUrl)
 		try {
-			const bookmark = await createMutation.mutateAsync({url, status, handlesAlreadySaved: true})
+			const bookmark = await createMutation.mutateAsync({url, status, handlesAlreadySaved: true, ...(title.trim() ? {title: title.trim()} : {})})
 			return {bookmark, alreadySaved: false}
 		} catch (e) {
 			if (isRequestContextAbort(e)) return undefined

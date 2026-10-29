@@ -310,6 +310,12 @@ export async function findBookmarkByUrl(url: string): Promise<BookmarkResponse |
 	return found ? normalizeBookmark(found) : undefined
 }
 
+/** One bookmark with its sources, which the list endpoint leaves out. */
+export async function fetchBookmark(id: number): Promise<BookmarkResponse> {
+	const {data} = await bookmarksRead({path: {id}})
+	return normalizeBookmark(data)
+}
+
 // ---------------------------------------------------------------------------
 // Sources: links to projects and tasks
 // ---------------------------------------------------------------------------

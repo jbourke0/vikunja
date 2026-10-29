@@ -8,6 +8,12 @@
 				v-if="!isPending"
 				class="jb-bookmarks__count"
 			>{{ $t('johnnysBrain.bookmarks.count', {count: bookmarks.length}, bookmarks.length) }}</span>
+			<RouterLink
+				:to="{name: 'bookmarks.share'}"
+				class="jb-bookmarks__share"
+			>
+				{{ $t('johnnysBrain.share.setupLink') }}
+			</RouterLink>
 		</header>
 
 		<form
@@ -257,6 +263,13 @@ function setStatus(bookmark: BookmarkResponse, status: BookmarkStatus) {
 .jb-bookmarks__count {
 	color: var(--grey-500);
 	font-size: .9rem;
+}
+
+.jb-bookmarks__share {
+	margin-inline-start: auto;
+	color: var(--jb-green);
+	font-size: .9rem;
+	font-weight: 500;
 }
 
 .jb-bookmarks__save {

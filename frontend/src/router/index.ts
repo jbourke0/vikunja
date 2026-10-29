@@ -431,6 +431,17 @@ const router = createRouter({
 			}),
 		},
 		{
+			// Also the PWA share target (see vite.config.ts) and the bookmarklet's destination.
+			path: '/save',
+			name: 'bookmarks.save',
+			component: () => import('@/johnnys-brain/share/SaveShared.vue'),
+		},
+		{
+			path: '/share',
+			name: 'bookmarks.share',
+			component: () => import('@/johnnys-brain/share/ShareSetup.vue'),
+		},
+		{
 			path: '/bookmarks/:bookmarkId(\\d+)',
 			name: 'bookmarks.detail',
 			component: () => import('@/johnnys-brain/bookmarks/BookmarkDetail.vue'),
