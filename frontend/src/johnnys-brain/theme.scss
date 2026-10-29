@@ -1,0 +1,557 @@
+// Johnny's Brain theme: Carbon Gym colours and type, Todoist-style layout.
+// Loaded last from styles/global.scss. Component overrides are scoped under #app so they
+// outrank upstream scoped styles without editing those components.
+
+
+$jb-font-files-path: '@/assets/fonts/';
+
+@font-face {
+	font-family: 'Inter';
+	src: url($jb-font-files-path + 'Inter[wght]_jbintera.woff2') format('woff2');
+	font-weight: 100 900;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Inter';
+	src: url($jb-font-files-path + 'Inter-Italic[wght]_jbinteri.woff2') format('woff2');
+	font-weight: 100 900;
+	font-style: italic;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Montserrat';
+	src: url($jb-font-files-path + 'Montserrat[wght]_jbmontsa.woff2') format('woff2');
+	font-weight: 100 900;
+	font-style: normal;
+	font-display: swap;
+}
+
+// ---------------------------------------------------------------------------
+// Tokens
+// ---------------------------------------------------------------------------
+
+:root {
+	--jb-font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--jb-font-heading: 'Montserrat', var(--jb-font-body);
+
+	--jb-green: #75d244;
+	--jb-green-rgb: 117, 210, 68;
+	--jb-green-ink: #000;
+
+	--jb-radius-card: 20px;
+	--jb-radius-button: 12px;
+	--jb-radius-row: 8px;
+
+	// Todoist-style priority colours for the round checkbox
+	--jb-prio-urgent: #ff5a5f;
+	--jb-prio-high: #ff9a14;
+	--jb-prio-medium: #4aa3df;
+	--jb-prio-none: var(--grey-400);
+
+	// Light mode keeps upstream neutrals with a deeper green that passes contrast on white
+	--primary-h: 99deg;
+	--primary-s: 55%;
+	--primary-l: 36%;
+	--switch-view-active-background: var(--primary);
+	--jb-sidebar: var(--grey-50);
+	--jb-row-hover: var(--grey-100);
+	--jb-divider: var(--grey-200);
+	--jb-date-today: hsl(99, 55%, 32%);
+	--jb-date-tomorrow: #9254de;
+	--jb-date-overdue: var(--danger-text);
+	--jb-date-later: var(--text-muted);
+	--logo-text-color: var(--text-strong);
+
+	&.dark {
+		@media screen {
+			// Carbon Gym neutrals (from training.carbongym.com.au)
+			--grey-50-hsl: 210, 5%, 7.5%;      // #121314 card
+			--grey-50: #121314;
+			--grey-100-hsl: 220, 5%, 11.6%;    // #1c1d1f input
+			--grey-100: #1c1d1f;
+			--grey-200: #26282b;
+			--grey-300: #3a3c40;
+			--grey-400: #6e7177;
+			--grey-500-hsl: 0, 0%, 60.4%;      // #9a9a9a muted
+			--grey-500: #9a9a9a;
+			--grey-600: #b9b9b9;
+			--grey-700: #d6d6d6;
+			--grey-800: #ededed;
+			--grey-900-hsl: 0, 0%, 100%;
+			--grey-900: #fff;
+
+			--site-background: #000;
+			--white: var(--grey-50);
+			--scheme-main: var(--grey-50);
+			--text: #fff;
+			--text-strong: #fff;
+			--text-muted: var(--grey-500);
+			--card-border-color: var(--grey-200);
+			--input-border-color: var(--grey-300);
+			--border: var(--grey-200);
+
+			--primary-h: 99deg;
+			--primary-s: 61%;
+			--primary-l: 55%;
+			--switch-view-active-background: var(--jb-green);
+			--link: var(--jb-green);
+
+			--jb-sidebar: #121314;
+			--jb-row-hover: #0d0e0f;
+			--jb-divider: #1f2023;
+			--jb-date-today: var(--jb-green);
+			--jb-date-tomorrow: #b78cf2;
+			--jb-date-overdue: #ff6b6b;
+			--jb-date-later: var(--grey-500);
+			--logo-text-color: #fff;
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Type
+// ---------------------------------------------------------------------------
+
+html body,
+html button,
+html input,
+html select,
+html textarea {
+	font-family: var(--jb-font-body);
+}
+
+html body {
+	-webkit-font-smoothing: antialiased;
+	letter-spacing: -.005em;
+}
+
+#app {
+	h1, h2, h3, h4, h5, h6,
+	.title,
+	.card-header-title,
+	.project-title {
+		font-family: var(--jb-font-heading);
+		font-weight: 700 !important;
+		letter-spacing: -.015em;
+	}
+
+	a:not(.button):not(.list-menu-link):not(.task-link):not(.task-project):not(.logo-link) {
+		&:hover {
+			color: var(--jb-green);
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Buttons and inputs (Carbon)
+// ---------------------------------------------------------------------------
+
+#app {
+	.button:not(.is-outlined):not(.is-text):not(.is-danger):not(.is-inverted) {
+		--button-text-color: var(--jb-green-ink);
+		background-color: var(--primary);
+		border-radius: var(--jb-radius-button);
+		text-transform: none;
+		font-size: .9rem;
+		font-weight: 600;
+		letter-spacing: 0;
+		box-shadow: none;
+		padding-inline: .9rem;
+
+		&:hover {
+			background-color: color-mix(in srgb, var(--primary) 88%, white);
+		}
+	}
+
+	.button.is-outlined,
+	.button.is-text {
+		border-radius: var(--jb-radius-button);
+		text-transform: none;
+		font-weight: 600;
+		letter-spacing: 0;
+	}
+
+	.input,
+	.textarea,
+	.select select {
+		border-radius: var(--jb-radius-button);
+		box-shadow: none;
+	}
+
+	.input:focus,
+	.textarea:focus,
+	.select select:focus,
+	.input:focus-within {
+		border-color: var(--jb-green);
+		box-shadow: 0 0 0 1px var(--jb-green);
+	}
+
+	.card {
+		border-radius: var(--jb-radius-card);
+		box-shadow: none;
+		border: 1px solid var(--card-border-color);
+		overflow: hidden;
+	}
+}
+
+:root.dark #app {
+	.input,
+	.textarea,
+	.select select {
+		background-color: var(--grey-100);
+		border-color: var(--grey-300);
+		color: #fff;
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Header: black bar with a thin green rule
+// ---------------------------------------------------------------------------
+
+#app .navbar {
+	background: var(--site-background);
+	border-block-end: 1px solid rgba(var(--jb-green-rgb), .45);
+	min-block-size: 3.5rem;
+
+	.project-title {
+		font-size: 1.15rem;
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Sidebar (Todoist layout)
+// ---------------------------------------------------------------------------
+
+#app .menu-container {
+	background: var(--jb-sidebar);
+	border-inline-end: 1px solid var(--jb-divider);
+	padding: .75rem 0 1rem;
+	inset-block-start: 3.5rem;
+
+	@media screen and (max-width: $tablet) {
+		inset-block-start: 0;
+		inline-size: 85vw;
+		max-inline-size: 320px;
+	}
+
+	.menu {
+		padding-inline: .6rem;
+	}
+
+	.menu-list a,
+	.menu-list .list-menu-link,
+	.top-menu .menu-list li > a,
+	.jb-nav-button {
+		display: flex;
+		align-items: center;
+		gap: .6rem;
+		inline-size: 100%;
+		min-block-size: 2.25rem;
+		padding: .35rem .6rem;
+		border-radius: var(--jb-radius-row);
+		color: var(--text);
+		font-family: var(--jb-font-body);
+		font-weight: 500;
+		font-size: .95rem;
+		border-inline-start: 0;
+		transition: background-color 120ms ease, color 120ms ease;
+
+		&:hover {
+			background: var(--grey-100);
+		}
+
+		.icon,
+		.menu-item-icon {
+			color: var(--grey-500);
+			inline-size: 1.25rem;
+			padding: 0;
+			margin: 0;
+		}
+	}
+
+	.menu-list a.router-link-exact-active,
+	.menu-list .list-menu-link.router-link-exact-active {
+		background: rgba(var(--jb-green-rgb), .14);
+		color: var(--jb-green);
+		font-weight: 600;
+
+		.icon,
+		.menu-item-icon {
+			color: var(--jb-green);
+		}
+	}
+
+	// Upstream draws a thick bar on the active item; the tinted pill replaces it
+	.menu-list a.router-link-exact-active::before,
+	.list-menu-link.router-link-exact-active::before {
+		display: none;
+	}
+
+	.top-menu .menu-list li {
+		font-family: var(--jb-font-body);
+		font-weight: 500;
+	}
+
+	.menu + .menu {
+		padding-block-start: .25rem;
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Task rows (Todoist)
+// ---------------------------------------------------------------------------
+
+#app {
+	.list-view,
+	.card:has(.single-task) {
+		background: transparent;
+		border: 0;
+		box-shadow: none;
+		border-radius: 0;
+	}
+
+	.card:has(.single-task) > .card-content {
+		padding: 0;
+	}
+
+	.card:has(.single-task) .tasks {
+		padding: 0 !important;
+	}
+
+	.single-task {
+		--jb-prio: var(--jb-prio-none);
+
+		position: relative;
+		align-items: flex-start;
+		padding: .7rem .25rem .7rem .4rem;
+		border: 0;
+		border-block-end: 1px solid var(--jb-divider);
+		border-radius: 0;
+		gap: .1rem;
+
+		&:hover {
+			background: var(--jb-row-hover);
+		}
+
+		&[data-priority="2"] { --jb-prio: var(--jb-prio-medium); }
+		&[data-priority="3"] { --jb-prio: var(--jb-prio-high); }
+		&[data-priority="4"],
+		&[data-priority="5"] { --jb-prio: var(--jb-prio-urgent); }
+
+		.tasktext {
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			column-gap: .6rem;
+			row-gap: .2rem;
+			-webkit-line-clamp: unset;
+			line-height: 1.35;
+
+			> span:first-child {
+				flex: 1 0 100%;
+				display: flex;
+				flex-wrap: wrap;
+				align-items: baseline;
+				column-gap: .35rem;
+				font-size: .95rem;
+			}
+		}
+
+		// Priority is shown on the checkbox, Todoist-style
+		.priority-label {
+			display: none;
+		}
+
+		a.task-link {
+			color: var(--text);
+		}
+
+		.tasktext.done a.task-link {
+			color: var(--grey-500);
+		}
+
+		.dueDate {
+			margin-inline-start: 0;
+			font-size: .8rem;
+		}
+
+		.labels .tag {
+			background: transparent !important;
+			color: var(--grey-500) !important;
+			padding: 0;
+			font-size: .8rem;
+			block-size: auto;
+			transform: none;
+		}
+
+		.project-task-icon {
+			color: var(--grey-500);
+			font-size: .75rem;
+		}
+
+		// Project name sits at the end of the row, as in Todoist
+		.task-project {
+			order: 10;
+			margin-inline: auto 0;
+			padding-inline-start: .75rem;
+			font-size: .8rem;
+			color: var(--grey-500);
+		}
+
+		> .color-bubble {
+			display: none;
+		}
+
+		.favorite {
+			align-self: center;
+		}
+
+		// Round checkbox with priority colour
+		.fancy-checkbox {
+			padding-block-start: .1rem;
+			padding-inline-end: .55rem;
+		}
+
+		.fancy-checkbox__icon {
+			inline-size: 20px;
+			block-size: 20px;
+			border-radius: 50%;
+			border: 2px solid var(--jb-prio);
+			background: color-mix(in srgb, var(--jb-prio) 10%, transparent);
+			padding: 2px;
+			stroke: var(--jb-prio) !important;
+			transition: background-color 120ms ease;
+
+			path {
+				display: none;
+			}
+
+			polyline {
+				opacity: 0;
+				stroke-dashoffset: 42 !important;
+				transition: opacity 120ms ease;
+			}
+		}
+
+		.fancy-checkbox:hover .fancy-checkbox__icon polyline {
+			opacity: 1;
+		}
+
+		.fancy-checkbox input:checked + .fancy-checkbox__icon {
+			background: var(--jb-prio);
+			stroke: var(--site-background) !important;
+
+			polyline {
+				opacity: 1;
+			}
+		}
+	}
+
+	.jb-due {
+		display: inline-flex;
+		align-items: center;
+		gap: .3rem;
+		color: var(--jb-date-later);
+		font-style: normal;
+
+		&.is-today { color: var(--jb-date-today); }
+		&.is-tomorrow { color: var(--jb-date-tomorrow); }
+		&.is-overdue { color: var(--jb-date-overdue); }
+
+		.icon {
+			font-size: .75rem;
+		}
+	}
+
+	// Quick add bar in the list view
+	.task-add .add-task-textarea {
+		border-radius: var(--jb-radius-button);
+	}
+
+	.task-add .add-task-button {
+		border-radius: var(--jb-radius-button);
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Llama artwork replaced or hidden
+// ---------------------------------------------------------------------------
+
+#app {
+	.no-auth-wrapper {
+		background: var(--site-background);
+		padding-block: 2rem 3rem;
+	}
+
+	.no-auth-wrapper .noauth-container {
+		border-radius: var(--jb-radius-card);
+		background: var(--grey-50);
+		border: 1px solid var(--card-border-color);
+		box-shadow: none;
+	}
+
+	.no-auth-wrapper .image {
+		@media screen and (min-width: $tablet) {
+			background: #0b0c0d url('@/assets/johnnys-brain/login-art.jpg') no-repeat center 15% / cover;
+		}
+	}
+
+	.no-auth-wrapper > .logo {
+		margin-block: 1rem 1.5rem;
+	}
+
+	.llama-cool {
+		display: none;
+	}
+
+	.offline {
+		background: var(--site-background);
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Mobile add-task button (Todoist's floating plus)
+// ---------------------------------------------------------------------------
+
+.jb-fab {
+	position: fixed;
+	inset-inline-end: 1.25rem;
+	inset-block-end: calc(1.25rem + env(safe-area-inset-bottom));
+	z-index: 25;
+	inline-size: 3.5rem;
+	block-size: 3.5rem;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--jb-green);
+	color: var(--jb-green-ink);
+	font-size: 1.35rem;
+	box-shadow: 0 6px 20px rgba(0, 0, 0, .45);
+
+	@media screen and (min-width: $tablet) {
+		display: none;
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Today view: Todoist's Today has no date controls
+// ---------------------------------------------------------------------------
+
+html[data-jb-view="today"] #app .show-tasks-options {
+	display: none;
+}
+
+// Touch screens have no hover, so upstream shows every empty star; keep only real favourites
+@media (hover: none) {
+	#app .single-task .favorite:not(.is-favorite) {
+		display: none;
+	}
+
+	#app .single-task .handle {
+		color: var(--grey-400);
+	}
+}

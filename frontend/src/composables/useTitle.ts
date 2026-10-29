@@ -1,6 +1,7 @@
 import {computed, toValue, type MaybeRef, type MaybeRefOrGetter} from 'vue'
 
 import {useTitle as useTitleVueUse, type UseTitleOptions, type ReadonlyRefOrGetter} from '@vueuse/core'
+import {pageTitle as brandedPageTitle} from '@/johnnys-brain/brand'
 
 export function useTitle(
 	newTitle:
@@ -11,11 +12,7 @@ export function useTitle(
 ) {
 	const pageTitle = computed(() => toValue(newTitle))
 
-	const completeTitle = computed(() =>
-		(typeof pageTitle.value === 'undefined' || pageTitle.value === '')
-			? 'Vikunja'
-			: `${pageTitle.value} | Vikunja`,
-	)
+	const completeTitle = computed(() => brandedPageTitle(pageTitle.value as string | null | undefined))
 
 	return useTitleVueUse(completeTitle, options)
 }

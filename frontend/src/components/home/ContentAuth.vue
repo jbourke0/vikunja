@@ -40,6 +40,7 @@
 				/>
 
 				<QuickActions />
+				<JbShell />
 
 				<RouterView
 					v-slot="{ Component }"
@@ -83,6 +84,7 @@ import {useRoute, useRouter} from 'vue-router'
 import {SHORTCUTS} from '@/constants/shortcuts'
 import Navigation from '@/components/home/Navigation.vue'
 import QuickActions from '@/components/quick-actions/QuickActions.vue'
+import JbShell from '@/johnnys-brain/JbShell.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 
 import {useBaseStore} from '@/stores/base'

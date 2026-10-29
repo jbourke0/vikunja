@@ -1,5 +1,5 @@
+import {pageTitle} from '@/johnnys-brain/brand'
+
 export function setTitle(title : undefined | string) {
-	document.title = (typeof title === 'undefined' || title === '')
-		? 'Vikunja'
-		: `${title} | Vikunja`
+	document.title = pageTitle(title)
 }

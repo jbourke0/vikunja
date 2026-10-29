@@ -92,6 +92,7 @@ import {
 	faUmbrellaBeach,
 	faCalendarPlus,
 	faFlagCheckered,
+	faInbox,
 } from '@fortawesome/free-solid-svg-icons'
 import {
 	faBellSlash,
@@ -106,6 +107,7 @@ import {
 	faTimesCircle,
 	faCircleQuestion, faFaceLaugh,
 	faCalendarCheck,
+	faCalendar as faCalendarRegular,
 } from '@fortawesome/free-regular-svg-icons'
 import {FontAwesomeIcon} from '@fortawesome/vue-fontawesome'
 
@@ -178,6 +180,8 @@ library.add(faPencilAlt)
 library.add(faPercent)
 library.add(faPlay)
 library.add(faPlus)
+library.add(faInbox)
+library.add(faCalendarRegular)
 library.add(faPowerOff)
 library.add(faRss)
 library.add(faSave)

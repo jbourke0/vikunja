@@ -159,7 +159,7 @@ function getBuildConfig(env: Record<string, string>) {
 			// https://github.com/Applelo/unplugin-inject-preload
 			UnpluginInjectPreload({
 				files: [{
-					outputMatch: createFontMatcher(['Quicksand', 'OpenSans', 'OpenSans-Italic']),
+					outputMatch: createFontMatcher(['Quicksand', 'OpenSans', 'OpenSans-Italic', 'Inter', 'Montserrat']),
 					attributes: {crossorigin: 'anonymous'},
 				}],
 				injectTo: 'custom',
@@ -171,9 +171,10 @@ function getBuildConfig(env: Record<string, string>) {
 				injectRegister: false,
 				useCredentials: true,
 				manifest: {
-					name: 'Vikunja',
-					short_name: 'Vikunja',
-					theme_color: '#1973ff',
+					name: 'Johnny\'s Brain',
+					short_name: 'Brain',
+					description: 'Johnny\'s tasks, projects and saved links.',
+					theme_color: '#000000',
 					icons: [
 						{
 							src: './images/icons/android-chrome-192x192.png',
@@ -197,28 +198,16 @@ function getBuildConfig(env: Record<string, string>) {
 					background_color: '#000000',
 					shortcuts: [
 						{
-							name: 'Overview',
-							url: '/',
+							name: 'Today',
+							url: '/tasks/by/upcoming?from=now%2Fd&to=now%2Fd%2B1d&showOverdue=true&showNulls=false',
 						},
 						{
-							name: 'Namespaces And Projects Overview',
-							short_name: 'Namespaces & Projects',
-							url: '/namespaces',
+							name: 'Upcoming',
+							url: '/tasks/by/upcoming',
 						},
 						{
-							name: 'Tasks Next Week',
-							short_name: 'Next Week',
-							url: '/tasks/by/week',
-						},
-						{
-							name: 'Tasks Next Month',
-							short_name: 'Next Month',
-							url: '/tasks/by/month',
-						},
-						{
-							name: 'Teams Overview',
-							short_name: 'Teams',
-							url: '/teams',
+							name: 'Projects',
+							url: '/projects',
 						},
 					],
 				},

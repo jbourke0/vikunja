@@ -9,6 +9,7 @@
 			class="task loader-container single-task"
 			tabindex="-1"
 			:data-is-overdue="isOverdue || undefined"
+			:data-priority="task.priority ?? 0"
 			@click="openTaskDetail"
 			@keyup.enter="openTaskDetail"
 		>
@@ -100,10 +101,13 @@
 						>	
 							<time
 								:datetime="formatISO(task.due_date)"
-								class="is-italic"
+								class="jb-due"
+								:class="`is-${due.tone}`"
+								:aria-label="$t('task.detail.due', {at: dueDateFormatted})"
 								:aria-expanded="isOpen ? 'true' : 'false'"
 							>
-								– {{ $t('task.detail.due', {at: dueDateFormatted}) }}
+								<Icon :icon="['far', 'calendar-alt']" />
+								{{ due.text }}
 							</time>
 						</BaseButton>
 					</template>
@@ -237,6 +241,7 @@ import {isEditorContentEmpty} from '@/helpers/editorContentEmpty'
 import {TASK_REPEAT_MODES} from '@/types/IRepeatMode'
 import {useGlobalNow} from '@/composables/useGlobalNow'
 import {useDelayedLoading} from '@/composables/useDelayedLoading'
+import {dueLabel} from '@/johnnys-brain/dueLabel'
 
 const props = withDefaults(defineProps<{
 	theTask: ITask,
@@ -303,6 +308,7 @@ function updateDueDate() {
 }
 
 const dueDateFormatted = ref('')
+const due = computed(() => dueLabel(task.value.due_date ?? new Date(), now.value))
 useIntervalFn(updateDueDate, 60_000, {
 	immediateCallback: true,
 })

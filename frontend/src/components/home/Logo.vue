@@ -1,27 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useNow } from '@vueuse/core'
-import { useAuthStore } from '@/stores/auth'
-import { useConfigStore } from '@/stores/config'
-import { useColorScheme } from '@/composables/useColorScheme'
+import {computed} from 'vue'
+import {useColorScheme} from '@/composables/useColorScheme'
+import {APP_NAME} from '@/johnnys-brain/brand'
+import avatarUrl from '@/assets/johnnys-brain/avatar.png'
 
-import LogoFull from '@/assets/logo-full.svg?component'
-import LogoFullPride from '@/assets/logo-full-pride.svg?component'
-import {MILLISECONDS_A_HOUR} from '@/constants/date'
-
-const now = useNow({
-	interval: MILLISECONDS_A_HOUR,
-})
-
-const authStore = useAuthStore()
-const configStore = useConfigStore()
-const { isDark } = useColorScheme()
-
-const Logo = computed(() => configStore.allow_icon_changes
-	&& authStore.settings.frontend_settings.allow_icon_changes
-	&& now.value.getMonth() === 5
-	? LogoFullPride
-	: LogoFull)
+const {isDark} = useColorScheme()
 
 const CustomLogo = computed(() => {
 	const lightLogo = window.CUSTOM_LOGO_URL
@@ -37,15 +20,23 @@ const CustomLogo = computed(() => {
 
 <template>
 	<div>
-		<Logo
+		<span
 			v-if="!CustomLogo"
-			alt="Vikunja"
-			class="logo"
-		/>
+			class="logo jb-logo"
+		>
+			<img
+				:src="avatarUrl"
+				alt=""
+				class="jb-logo__avatar"
+				width="36"
+				height="36"
+			>
+			<span class="jb-logo__name">{{ APP_NAME }}</span>
+		</span>
 		<img
 			v-else
 			:src="CustomLogo"
-			alt="Vikunja"
+			:alt="APP_NAME"
 			class="logo"
 		>
 	</div>
@@ -54,7 +45,29 @@ const CustomLogo = computed(() => {
 <style lang="scss" scoped>
 .logo {
 	color: var(--logo-text-color);
-	max-inline-size: 168px;
+	max-inline-size: 220px;
 	max-block-size: 48px;
+}
+
+.jb-logo {
+	display: inline-flex;
+	align-items: center;
+	gap: .6rem;
+	white-space: nowrap;
+}
+
+.jb-logo__avatar {
+	inline-size: 36px;
+	block-size: 36px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.jb-logo__name {
+	font-family: var(--jb-font-heading);
+	font-weight: 700;
+	font-size: 1.15rem;
+	letter-spacing: -.01em;
+	color: var(--text-strong);
 }
 </style>

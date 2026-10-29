@@ -22,13 +22,14 @@ afterEach(() => {
 })
 
 describe('Logo.vue', () => {
-	it('renders no img without a custom logo', () => {
+	it('renders the Johnny\'s Brain avatar and name without a custom logo', () => {
 		window.CUSTOM_LOGO_URL = ''
 		window.CUSTOM_LOGO_URL_DARK = ''
 
 		const wrapper = mount(Logo)
 
-		expect(wrapper.find('img').exists()).toBe(false)
+		expect(wrapper.find('img.jb-logo__avatar').exists()).toBe(true)
+		expect(wrapper.text()).toContain('Johnny\'s Brain')
 	})
 
 	it('renders the custom logo as img', () => {

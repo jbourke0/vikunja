@@ -20,20 +20,44 @@
 			</RouterLink>
 			<menu class="menu-list other-menu-items">
 				<li>
+					<BaseButton
+						class="jb-nav-button jb-add-task"
+						@click="openQuickAdd"
+					>
+						<span class="menu-item-icon icon jb-add-task__icon">
+							<Icon icon="plus" />
+						</span>
+						{{ $t('johnnysBrain.nav.addTask') }}
+					</BaseButton>
+				</li>
+				<li v-if="inboxProject">
+					<RouterLink :to="{ name: 'project.index', params: { projectId: inboxProject.id } }">
+						<span class="menu-item-icon icon">
+							<Icon icon="inbox" />
+						</span>
+						{{ $t('johnnysBrain.nav.inbox') }}
+					</RouterLink>
+				</li>
+				<li>
 					<RouterLink
-						v-shortcut="SHORTCUTS.navigation.overview"
-						:to="{ name: 'home'}"
+						:to="{ name: 'tasks.range', query: TODAY_QUERY }"
+						active-class=""
+						exact-active-class=""
+						:class="{'router-link-exact-active': isToday}"
 					>
 						<span class="menu-item-icon icon">
-							<Icon icon="calendar" />
+							<Icon :icon="['far', 'calendar']" />
 						</span>
-						{{ $t('navigation.overview') }}
+						{{ $t('johnnysBrain.nav.today') }}
 					</RouterLink>
 				</li>
 				<li>
 					<RouterLink
 						v-shortcut="SHORTCUTS.navigation.upcoming"
 						:to="{ name: 'tasks.range'}"
+						active-class=""
+						exact-active-class=""
+						:class="{'router-link-exact-active': isRangeView && !isToday}"
 					>
 						<span class="menu-item-icon icon">
 							<Icon :icon="['far', 'calendar-alt']" />
@@ -43,13 +67,13 @@
 				</li>
 				<li>
 					<RouterLink
-						v-shortcut="SHORTCUTS.navigation.projects"
-						:to="{ name: 'projects.index'}"
+						v-shortcut="SHORTCUTS.navigation.overview"
+						:to="{ name: 'home'}"
 					>
 						<span class="menu-item-icon icon">
-							<Icon icon="layer-group" />
+							<Icon icon="calendar" />
 						</span>
-						{{ $t('project.projects') }}
+						{{ $t('navigation.overview') }}
 					</RouterLink>
 				</li>
 				<li>
@@ -65,13 +89,13 @@
 				</li>
 				<li>
 					<RouterLink
-						v-shortcut="SHORTCUTS.navigation.teams"
-						:to="{ name: 'teams.index'}"
+						v-shortcut="SHORTCUTS.navigation.projects"
+						:to="{ name: 'projects.index'}"
 					>
 						<span class="menu-item-icon icon">
-							<Icon icon="users" />
+							<Icon icon="layer-group" />
 						</span>
-						{{ $t('team.title') }}
+						{{ $t('project.projects') }}
 					</RouterLink>
 				</li>
 				<li v-if="timeTrackingEnabled">
@@ -126,10 +150,6 @@
 			</nav>
 		</template>
 
-		<PoweredByLink
-			class="mbs-auto"
-			utm-medium="navigation"
-		/>
 
 		<div
 			v-if="!isMobile"
@@ -144,9 +164,9 @@
 import {computed} from 'vue'
 
 import {SHORTCUTS} from '@/constants/shortcuts'
-import PoweredByLink from '@/components/home/PoweredByLink.vue'
 import Logo from '@/components/home/Logo.vue'
 import Loading from '@/components/misc/Loading.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
 
 import {useBaseStore} from '@/stores/base'
 import {useProjects} from '@/composables/useProjects'
@@ -154,6 +174,9 @@ import {useConfigStore} from '@/stores/config'
 import {PRO_FEATURE} from '@/constants/proFeatures'
 import ProjectsNavigation from '@/components/home/ProjectsNavigation.vue'
 import {useSidebarResize} from '@/composables/useSidebarResize'
+import {useAuthStore} from '@/stores/auth'
+import {TODAY_QUERY} from '@/johnnys-brain/brand'
+import {useTodayView} from '@/johnnys-brain/useTodayView'
 
 const baseStore = useBaseStore()
 const projectList = useProjects()
@@ -166,6 +189,21 @@ const {sidebarWidthStyle, isResizing, startResize, isMobile} = useSidebarResize(
 const projects = computed(() => projectList.notArchivedRootProjects)
 const favoriteProjects = computed(() => projectList.favoriteProjects)
 const savedFilterProjects = computed(() => projectList.savedFilterProjects)
+
+const authStore = useAuthStore()
+const {isToday, isRangeView} = useTodayView()
+const inboxProject = computed(() => {
+	const all = projectList.notArchivedRootProjects
+	const defaultId = authStore.settings.default_project_id
+	return all.find(p => p.id === defaultId) ?? all.find(p => p.title === 'Inbox')
+})
+
+function openQuickAdd() {
+	if (isMobile.value) {
+		baseStore.setMenuActive(false)
+	}
+	baseStore.setQuickActionsActive(true)
+}
 </script>
 
 <style lang="scss" scoped>
@@ -254,5 +292,19 @@ const savedFilterProjects = computed(() => projectList.savedFilterProjects)
 
 .menu + .menu {
 	padding-block-start: math.div($navbar-padding, 2);
+}
+
+.jb-add-task {
+	color: var(--jb-green);
+	font-weight: 600;
+}
+
+.jb-add-task__icon {
+	inline-size: 1.25rem;
+	block-size: 1.25rem;
+	border-radius: 50%;
+	background: var(--jb-green);
+	color: var(--jb-green-ink) !important;
+	font-size: .7rem;
 }
 </style>
