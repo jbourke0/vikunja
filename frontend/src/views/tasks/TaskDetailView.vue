@@ -420,6 +420,14 @@
 						</div>
 					</div>
 
+					<!-- Johnny's Brain: sources -->
+					<div class="content details">
+						<SourcesPanel
+							:task-id="taskId"
+							:can-write="canWrite"
+						/>
+					</div>
+
 					<!-- Comments -->
 					<Comments
 						:can-write="canWrite"
@@ -671,6 +679,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 
 // partials
 import Attachments from '@/components/tasks/partials/Attachments.vue'
+import SourcesPanel from '@/johnnys-brain/bookmarks/SourcesPanel.vue'
 import TaskTimeTracking from '@/components/time-tracking/TaskTimeTracking.vue'
 import ChecklistSummary from '@/components/tasks/partials/ChecklistSummary.vue'
 import ColorPicker from '@/components/input/ColorPicker.vue'

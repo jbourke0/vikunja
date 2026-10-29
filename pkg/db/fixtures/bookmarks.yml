@@ -3,6 +3,7 @@
 # 4: user 2, linked to task 1 (project 1). 5: user 13, linked to project 20 and task 34 (user 13 only).
 - id: 1
   url: 'https://example.com/one'
+  url_hash: 'c51fa6b4adb93a77787ca059fc275142cfb551d9ce85cc82d68ce3e744a58e6c'
   title: 'Bookmark #1'
   description: 'First example bookmark'
   status: 'to_read'
@@ -12,6 +13,7 @@
   updated: 2018-12-02 15:13:12
 - id: 2
   url: 'https://example.com/two'
+  url_hash: '2807dc858ce4744a05f5a78ef8601994c5b6595cf12ecd8a5107c518467b6dba'
   title: 'Bookmark #2 - private to user 2'
   status: 'to_read'
   link_status: 0
@@ -20,6 +22,7 @@
   updated: 2018-12-02 15:13:12
 - id: 3
   url: 'https://example.com/three'
+  url_hash: '5c06ce1481bbb82fd9f0be0f23ef002d5c2b43521157fc4d126214a6b43c0b68'
   title: 'Bookmark #3 - user 2, source on project 1'
   status: 'reference'
   link_status: 0
@@ -28,6 +31,7 @@
   updated: 2018-12-02 15:13:12
 - id: 4
   url: 'https://example.com/four'
+  url_hash: 'eeaf1fc34b84a922e1318a323d09892168e6b88a0f463b90afb42d402843f705'
   title: 'Bookmark #4 - user 2, source on task 1'
   status: 'to_read'
   link_status: 0
@@ -36,6 +40,7 @@
   updated: 2018-12-02 15:13:12
 - id: 5
   url: 'https://example.com/five'
+  url_hash: 'e72e31dd41ff1e812bcb09188ce09344984143589cbfea67faf170e035c57a69'
   title: 'Bookmark #5 - user 13 only'
   status: 'to_read'
   link_status: 0
@@ -44,6 +49,7 @@
   updated: 2018-12-02 15:13:12
 - id: 6
   url: 'https://example.org/six'
+  url_hash: '88fcf1c4cf5232fe181f45d94dbe0dca0836ee0fb161c82e04c178239608b974'
   title: 'Bookmark #6 - archived'
   status: 'archived'
   link_status: 0

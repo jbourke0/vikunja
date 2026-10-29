@@ -354,6 +354,16 @@ const router = createRouter({
 			},
 			props: route => ({ projectId: Number(route.params.projectId as string) }),
 		},
+		// Johnny's Brain
+		{
+			path: '/projects/:projectId(\\d+)/sources',
+			name: 'project.sources',
+			component: () => import('@/johnnys-brain/bookmarks/ProjectSources.vue'),
+			meta: {
+				showAsModal: true,
+			},
+			props: route => ({ projectId: Number(route.params.projectId as string) }),
+		},
 		{
 			path: '/projects/:projectId/info',
 			name: 'project.info',

@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"code.vikunja.io/api/pkg/db"
+	"code.vikunja.io/api/pkg/events"
 	"code.vikunja.io/api/pkg/user"
 	"code.vikunja.io/api/pkg/web"
 
@@ -62,12 +63,22 @@ type Bookmark struct {
 	// When the link was last checked.
 	CheckedAt *time.Time `xorm:"datetime null" json:"checked_at" readOnly:"true" doc:"When the link was last checked, null if never. Set by the server."`
 
+	// Hash of the normalised URL, used to spot the same link saved twice.
+	URLHash string `xorm:"varchar(64) null INDEX" json:"-"`
+
 	CreatedByID int64 `xorm:"bigint not null INDEX" json:"-"`
 	// The user who saved this bookmark.
 	CreatedBy *user.User `xorm:"-" json:"created_by" readOnly:"true" doc:"The user who saved this bookmark."`
 
 	// The labels on this bookmark.
 	Labels []*Label `xorm:"-" json:"labels" readOnly:"true" doc:"The labels on this bookmark. Managed through the bookmark labels endpoints, not by writing here."`
+
+	// Projects this bookmark is linked to as a source.
+	Projects []*BookmarkLinkedProject `xorm:"-" json:"projects" readOnly:"true" doc:"Projects this bookmark is linked to as a source, limited to those the caller can see. Filled on single reads only; managed through the bookmark projects endpoints."`
+	// Tasks this bookmark is linked to as a source.
+	Tasks []*BookmarkLinkedTask `xorm:"-" json:"tasks" readOnly:"true" doc:"Tasks this bookmark is linked to as a source, limited to those the caller can see. Filled on single reads only; managed through the bookmark tasks endpoints."`
+	// How many open duplicate suggestions involve this bookmark.
+	DuplicateCount int `xorm:"-" json:"duplicate_count" readOnly:"true" doc:"How many open possible-duplicate suggestions involve this bookmark. See the bookmark duplicates endpoint."`
 
 	// A timestamp when this bookmark was created.
 	Created time.Time `xorm:"created not null" json:"created" readOnly:"true" doc:"A timestamp when this bookmark was created. You cannot change this value."`
@@ -79,6 +90,7 @@ type Bookmark struct {
 	FilterLabelID   int64  `xorm:"-" json:"-"`
 	FilterProjectID int64  `xorm:"-" json:"-"`
 	FilterTaskID    int64  `xorm:"-" json:"-"`
+	FilterURL       string `xorm:"-" json:"-"`
 
 	web.CRUDable    `xorm:"-" json:"-"`
 	web.Permissions `xorm:"-" json:"-"`
@@ -109,6 +121,8 @@ func (b *Bookmark) normalizeAndValidate() error {
 		return ErrBookmarkInvalidStatus{Status: b.Status}
 	}
 
+	b.URLHash = BookmarkURLHash(b.URL)
+
 	if b.Title == "" {
 		b.Title = strings.TrimPrefix(parsed.Hostname(), "www.")
 	}
@@ -136,9 +150,35 @@ func (b *Bookmark) Create(s *xorm.Session, a web.Auth) error {
 	b.CreatedByID = u.ID
 	b.CreatedBy = u
 	b.Labels = []*Label{}
+	b.Projects = []*BookmarkLinkedProject{}
+	b.Tasks = []*BookmarkLinkedTask{}
 
-	_, err = s.Insert(b)
-	return err
+	if err := ensureURLNotSavedYet(s, b); err != nil {
+		return err
+	}
+
+	if _, err := s.Insert(b); err != nil {
+		return err
+	}
+
+	events.DispatchOnCommit(s, &BookmarkSavedEvent{BookmarkID: b.ID})
+	return nil
+}
+
+// ensureURLNotSavedYet refuses a second bookmark of the same owner for the same page.
+func ensureURLNotSavedYet(s *xorm.Session, b *Bookmark) error {
+	existing := &Bookmark{}
+	has, err := s.
+		Where("url_hash = ? AND created_by_id = ? AND id != ?", b.URLHash, b.CreatedByID, b.ID).
+		Cols("id").
+		Get(existing)
+	if err != nil {
+		return err
+	}
+	if has {
+		return ErrBookmarkAlreadySaved{ExistingID: existing.ID}
+	}
+	return nil
 }
 
 // Update replaces the editable fields of a bookmark. Only the owner may do this (see CanUpdate).
@@ -147,10 +187,20 @@ func (b *Bookmark) Update(s *xorm.Session, a web.Auth) error {
 		return err
 	}
 
-	_, err := s.
+	stored, err := getBookmarkByIDSimple(s, b.ID)
+	if err != nil {
+		return err
+	}
+	b.CreatedByID = stored.CreatedByID
+	if err := ensureURLNotSavedYet(s, b); err != nil {
+		return err
+	}
+
+	_, err = s.
 		ID(b.ID).
 		Cols(
 			"url",
+			"url_hash",
 			"title",
 			"description",
 			"favicon_url",
@@ -161,6 +211,11 @@ func (b *Bookmark) Update(s *xorm.Session, a web.Auth) error {
 		Update(b)
 	if err != nil {
 		return err
+	}
+
+	// Only what the duplicate check compares should trigger a new check; status changes do not.
+	if stored.URLHash != b.URLHash || stored.Title != b.Title || stored.Description != b.Description || stored.SiteName != b.SiteName {
+		events.DispatchOnCommit(s, &BookmarkSavedEvent{BookmarkID: b.ID})
 	}
 
 	return b.ReadOne(s, a)
@@ -174,20 +229,26 @@ func (b *Bookmark) Delete(s *xorm.Session, _ web.Auth) error {
 			return err
 		}
 	}
+	if _, err := s.Where("bookmark_id = ? OR duplicate_id = ?", b.ID, b.ID).Delete(&BookmarkDuplicate{}); err != nil {
+		return err
+	}
 
 	_, err := s.ID(b.ID).Delete(&Bookmark{})
 	return err
 }
 
 // ReadOne loads a bookmark with its creator and labels. CanRead has already checked access.
-func (b *Bookmark) ReadOne(s *xorm.Session, _ web.Auth) error {
+func (b *Bookmark) ReadOne(s *xorm.Session, a web.Auth) error {
 	stored, err := getBookmarkByIDSimple(s, b.ID)
 	if err != nil {
 		return err
 	}
 	*b = *stored
 
-	return addBookmarkDetails(s, []*Bookmark{b})
+	if err := addBookmarkDetails(s, []*Bookmark{b}); err != nil {
+		return err
+	}
+	return addBookmarkSources(s, a, b)
 }
 
 // ReadAll lists the bookmarks the caller can see, newest first. The search matches the
@@ -217,6 +278,9 @@ func (b *Bookmark) ReadAll(s *xorm.Session, a web.Auth, search string, page int,
 	if b.FilterProjectID > 0 {
 		conds = append(conds, builder.In("bookmarks.id",
 			builder.Select("bookmark_id").From("bookmark_projects").Where(builder.Eq{"project_id": b.FilterProjectID})))
+	}
+	if b.FilterURL != "" {
+		conds = append(conds, builder.Eq{"bookmarks.url_hash": BookmarkURLHash(b.FilterURL)})
 	}
 	if b.FilterTaskID > 0 {
 		conds = append(conds, builder.In("bookmarks.id",
@@ -274,6 +338,16 @@ func addBookmarkDetails(s *xorm.Session, bookmarks []*Bookmark) error {
 		creatorIDs = append(creatorIDs, b.CreatedByID)
 		byID[b.ID] = b
 		b.Labels = []*Label{}
+		b.Projects = []*BookmarkLinkedProject{}
+		b.Tasks = []*BookmarkLinkedTask{}
+	}
+
+	counts, err := openDuplicateCounts(s, ids)
+	if err != nil {
+		return err
+	}
+	for _, b := range bookmarks {
+		b.DuplicateCount = counts[b.ID]
 	}
 
 	creators, err := user.GetUsersByIDs(s, creatorIDs)
@@ -321,34 +395,6 @@ func (*BookmarkSnapshot) TableName() string {
 	return "bookmark_snapshots"
 }
 
-// BookmarkProject links a bookmark to a project as a source.
-type BookmarkProject struct {
-	ID          int64     `xorm:"bigint autoincr not null unique pk" json:"-"`
-	BookmarkID  int64     `xorm:"bigint not null INDEX unique(bookmark_project)" json:"bookmark_id"`
-	ProjectID   int64     `xorm:"bigint not null INDEX unique(bookmark_project)" json:"project_id"`
-	CreatedByID int64     `xorm:"bigint not null" json:"-"`
-	Created     time.Time `xorm:"created not null" json:"created"`
-}
-
-// TableName returns the table name for bookmark to project links.
-func (*BookmarkProject) TableName() string {
-	return "bookmark_projects"
-}
-
-// BookmarkTask links a bookmark to a task as a source.
-type BookmarkTask struct {
-	ID          int64     `xorm:"bigint autoincr not null unique pk" json:"-"`
-	BookmarkID  int64     `xorm:"bigint not null INDEX unique(bookmark_task)" json:"bookmark_id"`
-	TaskID      int64     `xorm:"bigint not null INDEX unique(bookmark_task)" json:"task_id"`
-	CreatedByID int64     `xorm:"bigint not null" json:"-"`
-	Created     time.Time `xorm:"created not null" json:"created"`
-}
-
-// TableName returns the table name for bookmark to task links.
-func (*BookmarkTask) TableName() string {
-	return "bookmark_tasks"
-}
-
 // bookmarkTables lists the Johnny's Brain bookmark tables for GetTables.
 func bookmarkTables() []interface{} {
 	return []interface{}{
@@ -358,5 +404,6 @@ func bookmarkTables() []interface{} {
 		&BookmarkTask{},
 		&LabelBookmark{},
 		&BookmarkComment{},
+		&BookmarkDuplicate{},
 	}
 }

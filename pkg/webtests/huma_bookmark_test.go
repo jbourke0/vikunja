@@ -21,8 +21,10 @@ import (
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 
 	"code.vikunja.io/api/pkg/db"
+	"code.vikunja.io/api/pkg/models"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -286,4 +288,112 @@ func TestHumaBookmarkLabel(t *testing.T) {
 		assert.Equal(t, http.StatusNoContent, rec.Code)
 		db.AssertMissing(t, "label_bookmarks", map[string]interface{}{"bookmark_id": 1, "label_id": 1})
 	})
+}
+
+func TestHumaBookmark_SameLinkTwice(t *testing.T) {
+	h := webHandlerTestV2{user: &testuser1, basePath: "/api/v2/bookmarks", idParam: "bookmark", t: t}
+
+	_, err := h.testCreateWithUser(nil, nil, `{"url":"http://www.example.com/one/?utm_source=x"}`)
+	require.Error(t, err)
+	assert.Equal(t, http.StatusConflict, getHTTPErrorCode(err))
+	assertHandlerErrorCode(t, err, 90008)
+
+	rec, err := h.testReadAllWithUser(url.Values{"url": {"https://example.com/one?fbclid=abc"}}, nil)
+	require.NoError(t, err)
+	assert.Equal(t, []int64{1}, labelIDsFromReadAll(t, rec.Body.Bytes()), "the url filter finds the existing bookmark")
+}
+
+func TestHumaBookmarkSources(t *testing.T) {
+	// One environment for every handler: each fresh one reloads the fixtures on first use.
+	e, err := setupTestEnv()
+	require.NoError(t, err)
+	handler := func(basePath, idParam string) webHandlerTestV2 {
+		return webHandlerTestV2{user: &testuser1, basePath: basePath, idParam: idParam, t: t, e: e}
+	}
+	projects := handler("/api/v2/bookmarks/1/projects", "project")
+	tasks := handler("/api/v2/bookmarks/1/tasks", "task")
+
+	t.Run("link and unlink", func(t *testing.T) {
+		rec, err := projects.testCreateWithUser(nil, nil, `{"project_id":1}`)
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusCreated, rec.Code)
+		_, err = tasks.testCreateWithUser(nil, nil, `{"task_id":1}`)
+		require.NoError(t, err)
+
+		read := handler("/api/v2/bookmarks", "bookmark")
+		rec, err = read.testReadOneWithUser(nil, map[string]string{"bookmark": "1"})
+		require.NoError(t, err)
+		assert.Contains(t, rec.Body.String(), `"projects":[{"id":1`)
+		assert.Contains(t, rec.Body.String(), `"tasks":[{"id":1`)
+
+		list, err := read.testReadAllWithUser(url.Values{"task_id": {"1"}}, nil)
+		require.NoError(t, err)
+		assert.ElementsMatch(t, []int64{1, 4}, labelIDsFromReadAll(t, list.Body.Bytes()))
+
+		rec, err = tasks.testDeleteWithUser(nil, map[string]string{"task": "1"})
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusNoContent, rec.Code)
+	})
+	t.Run("twice is a conflict", func(t *testing.T) {
+		// Project 1 was linked in the first subtest; the environment is shared.
+		_, err := projects.testCreateWithUser(nil, nil, `{"project_id":1}`)
+		require.Error(t, err)
+		assert.Equal(t, http.StatusConflict, getHTTPErrorCode(err))
+	})
+	t.Run("read-only project is forbidden", func(t *testing.T) {
+		_, err := projects.testCreateWithUser(nil, nil, `{"project_id":9}`)
+		require.Error(t, err)
+		assert.Equal(t, http.StatusForbidden, getHTTPErrorCode(err))
+	})
+	t.Run("someone else's bookmark is forbidden", func(t *testing.T) {
+		other := handler("/api/v2/bookmarks/4/projects", "project")
+		_, err := other.testCreateWithUser(nil, nil, `{"project_id":1}`)
+		require.Error(t, err)
+		assert.Equal(t, http.StatusForbidden, getHTTPErrorCode(err))
+	})
+	t.Run("project writer removes a link on another user's bookmark", func(t *testing.T) {
+		other := handler("/api/v2/bookmarks/3/projects", "project")
+		rec, err := other.testDeleteWithUser(nil, map[string]string{"project": "1"})
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusNoContent, rec.Code)
+	})
+}
+
+func TestHumaBookmarkDuplicates(t *testing.T) {
+	e, err := setupTestEnv()
+	require.NoError(t, err)
+	token := humaTokenFor(t, &testuser1)
+
+	s := db.NewSession()
+	_, err = s.Insert(&models.Bookmark{ID: 50, URL: "https://example.org/one-again", URLHash: models.BookmarkURLHash("https://example.org/one-again"), Title: "One again", Status: "to_read", CreatedByID: 1})
+	require.NoError(t, err)
+	_, err = s.Insert(&models.BookmarkDuplicate{BookmarkID: 1, DuplicateID: 50, Score: 0.9, Reason: "ai", Explanation: "Same page.", Status: "open", DetectedAt: time.Now()})
+	require.NoError(t, err)
+	require.NoError(t, s.Commit())
+	s.Close()
+
+	rec := humaRequest(t, e, http.MethodGet, "/api/v2/bookmarks/1/duplicates", "", token, "")
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.Contains(t, rec.Body.String(), `"reason":"ai"`)
+	assert.Contains(t, rec.Body.String(), `"bookmark":{"id":50`)
+
+	rec = humaRequest(t, e, http.MethodGet, "/api/v2/bookmarks/1", "", token, "")
+	assert.Contains(t, rec.Body.String(), `"duplicate_count":1`)
+
+	rec = humaRequest(t, e, http.MethodGet, "/api/v2/bookmarks/2/duplicates", "", token, "")
+	assert.Equal(t, http.StatusForbidden, rec.Code, "private bookmark of another user")
+
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/bookmarks/1/merge", `{"source_id":3}`, token, "")
+	assert.Equal(t, http.StatusForbidden, rec.Code, "cannot merge in someone else's bookmark")
+
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/bookmarks/1/merge", `{"source_id":50}`, token, "")
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.Contains(t, rec.Body.String(), `"duplicate_count":0`)
+	db.AssertMissing(t, "bookmarks", map[string]interface{}{"id": 50})
+
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/bookmarks/1/duplicates/50/dismiss", "", token, "")
+	assert.Equal(t, http.StatusNotFound, rec.Code, "the pair went with the merge")
+
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/bookmarks/1/duplicates/6/dismiss", "", token, "")
+	assert.Equal(t, http.StatusNoContent, rec.Code, "the fixture pair 1/6 can be dismissed again")
 }

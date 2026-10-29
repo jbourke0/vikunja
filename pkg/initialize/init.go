@@ -20,6 +20,8 @@ import (
 	"context"
 	"time"
 
+	"code.vikunja.io/api/pkg/modules/johnnysbrain/duplicatejudge"
+
 	"code.vikunja.io/api/pkg/audit"
 	"code.vikunja.io/api/pkg/config"
 	"code.vikunja.io/api/pkg/cron"
@@ -153,6 +155,9 @@ func FullInit() {
 
 	// Initialize WebSocket hub
 	ws.InitHub()
+
+	// Johnny's Brain: AI duplicate matching for bookmarks (off without an API key)
+	duplicatejudge.Init()
 
 	// Start processing events
 	go func() {

@@ -77,6 +77,12 @@
 				{{ $t('menu.share') }}
 			</DropdownItem>
 			<DropdownItem
+				:to="{ name: 'project.sources', params: { projectId: project.id } }"
+				icon="bookmark"
+			>
+				{{ $t('johnnysBrain.sources.title') }}
+			</DropdownItem>
+			<DropdownItem
 				:to="{ name: 'project.settings.duplicate', params: { projectId: project.id } }"
 				icon="paste"
 			>

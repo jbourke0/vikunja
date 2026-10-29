@@ -1,0 +1,9 @@
+# Bookmarks 1 and 6 (both user 1) were marked as not duplicates.
+- id: 1
+  bookmark_id: 1
+  duplicate_id: 6
+  score: 0.7
+  reason: 'similar'
+  explanation: ''
+  status: 'dismissed'
+  detected_at: 2018-12-01 15:13:12

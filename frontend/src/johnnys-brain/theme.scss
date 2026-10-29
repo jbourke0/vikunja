@@ -149,7 +149,9 @@ html body {
 // Buttons and inputs (Carbon)
 // ---------------------------------------------------------------------------
 
-#app {
+// Modals and popups render outside #app, so this block targets anything in body; :is() keeps
+// #app's specificity so it still outranks the components' scoped styles.
+:is(#app, body) {
 	.button:not(.is-outlined):not(.is-text):not(.is-danger):not(.is-inverted) {
 		--button-text-color: var(--jb-green-ink);
 		background-color: var(--primary);
@@ -197,7 +199,7 @@ html body {
 	}
 }
 
-:root.dark #app {
+:root.dark :is(#app, body) {
 	.input,
 	.textarea,
 	.select select {

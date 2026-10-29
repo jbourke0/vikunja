@@ -215,3 +215,139 @@ func (err ErrLabelIsNotOnBookmark) HTTPError() web.HTTPError {
 		Message:  "This label is not on the bookmark.",
 	}
 }
+
+// ErrBookmarkAlreadySaved represents an error where the same page is saved twice by the same owner.
+type ErrBookmarkAlreadySaved struct {
+	ExistingID int64
+}
+
+// IsErrBookmarkAlreadySaved checks if an error is ErrBookmarkAlreadySaved.
+func IsErrBookmarkAlreadySaved(err error) bool {
+	var target ErrBookmarkAlreadySaved
+	return errors.As(err, &target)
+}
+
+func (err ErrBookmarkAlreadySaved) Error() string {
+	return fmt.Sprintf("Bookmark already saved [ExistingID: %v]", err.ExistingID)
+}
+
+// ErrCodeBookmarkAlreadySaved holds the unique world-error code of this error
+const ErrCodeBookmarkAlreadySaved = 90008
+
+// HTTPError holds the http error description
+func (err ErrBookmarkAlreadySaved) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusConflict,
+		Code:     ErrCodeBookmarkAlreadySaved,
+		Message:  fmt.Sprintf("You already saved this link as bookmark %d.", err.ExistingID),
+	}
+}
+
+// ErrBookmarkSourceAlreadyLinked represents an error where a bookmark is already linked to that project or task.
+type ErrBookmarkSourceAlreadyLinked struct {
+	BookmarkID int64
+}
+
+// IsErrBookmarkSourceAlreadyLinked checks if an error is ErrBookmarkSourceAlreadyLinked.
+func IsErrBookmarkSourceAlreadyLinked(err error) bool {
+	var target ErrBookmarkSourceAlreadyLinked
+	return errors.As(err, &target)
+}
+
+func (err ErrBookmarkSourceAlreadyLinked) Error() string {
+	return fmt.Sprintf("Bookmark source already linked [BookmarkID: %v]", err.BookmarkID)
+}
+
+// ErrCodeBookmarkSourceAlreadyLinked holds the unique world-error code of this error
+const ErrCodeBookmarkSourceAlreadyLinked = 90009
+
+// HTTPError holds the http error description
+func (err ErrBookmarkSourceAlreadyLinked) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusConflict,
+		Code:     ErrCodeBookmarkSourceAlreadyLinked,
+		Message:  "This bookmark is already linked there.",
+	}
+}
+
+// ErrBookmarkSourceNotLinked represents an error where a link to remove does not exist.
+type ErrBookmarkSourceNotLinked struct {
+	BookmarkID int64
+}
+
+// IsErrBookmarkSourceNotLinked checks if an error is ErrBookmarkSourceNotLinked.
+func IsErrBookmarkSourceNotLinked(err error) bool {
+	var target ErrBookmarkSourceNotLinked
+	return errors.As(err, &target)
+}
+
+func (err ErrBookmarkSourceNotLinked) Error() string {
+	return fmt.Sprintf("Bookmark source not linked [BookmarkID: %v]", err.BookmarkID)
+}
+
+// ErrCodeBookmarkSourceNotLinked holds the unique world-error code of this error
+const ErrCodeBookmarkSourceNotLinked = 90010
+
+// HTTPError holds the http error description
+func (err ErrBookmarkSourceNotLinked) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusNotFound,
+		Code:     ErrCodeBookmarkSourceNotLinked,
+		Message:  "This bookmark is not linked there.",
+	}
+}
+
+// ErrBookmarkDuplicateNotFound represents an error where there is no duplicate suggestion for a pair.
+type ErrBookmarkDuplicateNotFound struct {
+	BookmarkID int64
+	OtherID    int64
+}
+
+// IsErrBookmarkDuplicateNotFound checks if an error is ErrBookmarkDuplicateNotFound.
+func IsErrBookmarkDuplicateNotFound(err error) bool {
+	var target ErrBookmarkDuplicateNotFound
+	return errors.As(err, &target)
+}
+
+func (err ErrBookmarkDuplicateNotFound) Error() string {
+	return fmt.Sprintf("Bookmark duplicate suggestion not found [BookmarkID: %v, OtherID: %v]", err.BookmarkID, err.OtherID)
+}
+
+// ErrCodeBookmarkDuplicateNotFound holds the unique world-error code of this error
+const ErrCodeBookmarkDuplicateNotFound = 90011
+
+// HTTPError holds the http error description
+func (err ErrBookmarkDuplicateNotFound) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusNotFound,
+		Code:     ErrCodeBookmarkDuplicateNotFound,
+		Message:  "These bookmarks are not suggested as duplicates.",
+	}
+}
+
+// ErrBookmarkMergeIntoItself represents an error where a merge names the same bookmark twice.
+type ErrBookmarkMergeIntoItself struct {
+	BookmarkID int64
+}
+
+// IsErrBookmarkMergeIntoItself checks if an error is ErrBookmarkMergeIntoItself.
+func IsErrBookmarkMergeIntoItself(err error) bool {
+	var target ErrBookmarkMergeIntoItself
+	return errors.As(err, &target)
+}
+
+func (err ErrBookmarkMergeIntoItself) Error() string {
+	return fmt.Sprintf("Cannot merge a bookmark into itself [BookmarkID: %v]", err.BookmarkID)
+}
+
+// ErrCodeBookmarkMergeIntoItself holds the unique world-error code of this error
+const ErrCodeBookmarkMergeIntoItself = 90012
+
+// HTTPError holds the http error description
+func (err ErrBookmarkMergeIntoItself) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusBadRequest,
+		Code:     ErrCodeBookmarkMergeIntoItself,
+		Message:  "A bookmark cannot be merged into itself.",
+	}
+}

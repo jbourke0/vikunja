@@ -250,6 +250,10 @@ export type Bookmark = {
      */
     description?: string;
     /**
+     * How many open possible-duplicate suggestions involve this bookmark. See the bookmark duplicates endpoint.
+     */
+    readonly duplicate_count?: number;
+    /**
      * Absolute URL of the page's favicon.
      */
     favicon_url?: string;
@@ -270,6 +274,10 @@ export type Bookmark = {
      */
     readonly link_status?: number;
     /**
+     * Projects this bookmark is linked to as a source, limited to those the caller can see. Filled on single reads only; managed through the bookmark projects endpoints.
+     */
+    readonly projects?: Array<BookmarkLinkedProject> | null;
+    /**
      * The name of the site, usually its Open Graph site name.
      */
     site_name?: string;
@@ -277,6 +285,10 @@ export type Bookmark = {
      * Reading status: to_read (default), reference or archived.
      */
     status?: 'to_read' | 'reference' | 'archived';
+    /**
+     * Tasks this bookmark is linked to as a source, limited to those the caller can see. Filled on single reads only; managed through the bookmark tasks endpoints.
+     */
+    readonly tasks?: Array<BookmarkLinkedTask> | null;
     /**
      * The page title. Defaults to the site's host name when left empty.
      */
@@ -349,6 +361,89 @@ export type BookmarkCommentReadBody = {
     readonly updated?: string;
 };
 
+export type BookmarkDuplicateSuggestion = {
+    /**
+     * The other bookmark that looks like a duplicate.
+     */
+    bookmark?: Bookmark;
+    /**
+     * When the suggestion was made.
+     */
+    detected_at?: string;
+    /**
+     * A short note on why the two look like the same thing. May be empty.
+     */
+    explanation?: string;
+    /**
+     * How it was found: similar (local comparison of link, title and description) or ai (judged by the AI model).
+     */
+    reason?: 'similar' | 'ai';
+    /**
+     * How sure the check is, from 0 to 1.
+     */
+    score?: number;
+};
+
+export type BookmarkLinkedProject = {
+    /**
+     * The project colour in hex, without #.
+     */
+    hex_color?: string;
+    /**
+     * The project id.
+     */
+    id?: number;
+    /**
+     * The project title.
+     */
+    title?: string;
+};
+
+export type BookmarkLinkedTask = {
+    /**
+     * Whether the task is done.
+     */
+    done?: boolean;
+    /**
+     * The task id.
+     */
+    id?: number;
+    /**
+     * The project the task is in.
+     */
+    project_id?: number;
+    /**
+     * The task title.
+     */
+    title?: string;
+};
+
+export type BookmarkMergeInput = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * The bookmark to fold into this one. It is deleted after the merge.
+     */
+    source_id?: number;
+};
+
+export type BookmarkProject = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * When the link was made. You cannot change this value.
+     */
+    readonly created?: string;
+    /**
+     * The project to link the bookmark to. You need write access to it.
+     */
+    project_id?: number;
+};
+
 export type BookmarkReadBody = {
     /**
      * A URL to the JSON Schema for this object.
@@ -370,6 +465,10 @@ export type BookmarkReadBody = {
      * A short plain-text description of the page, usually its meta or Open Graph description.
      */
     description?: string;
+    /**
+     * How many open possible-duplicate suggestions involve this bookmark. See the bookmark duplicates endpoint.
+     */
+    readonly duplicate_count?: number;
     /**
      * Absolute URL of the page's favicon.
      */
@@ -395,6 +494,10 @@ export type BookmarkReadBody = {
      */
     readonly max_permission?: number;
     /**
+     * Projects this bookmark is linked to as a source, limited to those the caller can see. Filled on single reads only; managed through the bookmark projects endpoints.
+     */
+    readonly projects?: Array<BookmarkLinkedProject> | null;
+    /**
      * The name of the site, usually its Open Graph site name.
      */
     site_name?: string;
@@ -402,6 +505,10 @@ export type BookmarkReadBody = {
      * Reading status: to_read (default), reference or archived.
      */
     status?: 'to_read' | 'reference' | 'archived';
+    /**
+     * Tasks this bookmark is linked to as a source, limited to those the caller can see. Filled on single reads only; managed through the bookmark tasks endpoints.
+     */
+    readonly tasks?: Array<BookmarkLinkedTask> | null;
     /**
      * The page title. Defaults to the site's host name when left empty.
      */
@@ -414,6 +521,21 @@ export type BookmarkReadBody = {
      * The address of the saved page. Must be an absolute http or https URL.
      */
     url?: string;
+};
+
+export type BookmarkTask = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * When the link was made. You cannot change this value.
+     */
+    readonly created?: string;
+    /**
+     * The task to link the bookmark to. You need write access to it.
+     */
+    task_id?: number;
 };
 
 export type BotUser = {
@@ -3908,6 +4030,43 @@ export type BookmarkCommentReadBodyWritable = {
     comment?: string;
 };
 
+export type BookmarkDuplicateSuggestionWritable = {
+    /**
+     * The other bookmark that looks like a duplicate.
+     */
+    bookmark?: BookmarkWritable;
+    /**
+     * When the suggestion was made.
+     */
+    detected_at?: string;
+    /**
+     * A short note on why the two look like the same thing. May be empty.
+     */
+    explanation?: string;
+    /**
+     * How it was found: similar (local comparison of link, title and description) or ai (judged by the AI model).
+     */
+    reason?: 'similar' | 'ai';
+    /**
+     * How sure the check is, from 0 to 1.
+     */
+    score?: number;
+};
+
+export type BookmarkMergeInputWritable = {
+    /**
+     * The bookmark to fold into this one. It is deleted after the merge.
+     */
+    source_id?: number;
+};
+
+export type BookmarkProjectWritable = {
+    /**
+     * The project to link the bookmark to. You need write access to it.
+     */
+    project_id?: number;
+};
+
 export type BookmarkReadBodyWritable = {
     /**
      * A short plain-text description of the page, usually its meta or Open Graph description.
@@ -3937,6 +4096,13 @@ export type BookmarkReadBodyWritable = {
      * The address of the saved page. Must be an absolute http or https URL.
      */
     url?: string;
+};
+
+export type BookmarkTaskWritable = {
+    /**
+     * The task to link the bookmark to. You need write access to it.
+     */
+    task_id?: number;
 };
 
 export type BotUserWritable = {
@@ -6103,6 +6269,10 @@ export type BookmarksListData = {
          * Only bookmarks linked as a source to this task.
          */
         task_id?: number;
+        /**
+         * Only the bookmark saved for this link, compared after normalising (tracking parameters, www and trailing slashes are ignored). Use it to ask whether a link is already saved.
+         */
+        url?: string;
     };
     url: '/bookmarks';
 };
@@ -6366,6 +6536,61 @@ export type BookmarkCommentsUpdateResponses = {
 
 export type BookmarkCommentsUpdateResponse = BookmarkCommentsUpdateResponses[keyof BookmarkCommentsUpdateResponses];
 
+export type BookmarkDuplicatesListData = {
+    body?: never;
+    path: {
+        bookmark: number;
+    };
+    query?: never;
+    url: '/bookmarks/{bookmark}/duplicates';
+};
+
+export type BookmarkDuplicatesListErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarkDuplicatesListError = BookmarkDuplicatesListErrors[keyof BookmarkDuplicatesListErrors];
+
+export type BookmarkDuplicatesListResponses = {
+    /**
+     * OK
+     */
+    200: Array<BookmarkDuplicateSuggestion> | null;
+};
+
+export type BookmarkDuplicatesListResponse = BookmarkDuplicatesListResponses[keyof BookmarkDuplicatesListResponses];
+
+export type BookmarkDuplicatesDismissData = {
+    body?: never;
+    path: {
+        bookmark: number;
+        other: number;
+    };
+    query?: never;
+    url: '/bookmarks/{bookmark}/duplicates/{other}/dismiss';
+};
+
+export type BookmarkDuplicatesDismissErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarkDuplicatesDismissError = BookmarkDuplicatesDismissErrors[keyof BookmarkDuplicatesDismissErrors];
+
+export type BookmarkDuplicatesDismissResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type BookmarkDuplicatesDismissResponse = BookmarkDuplicatesDismissResponses[keyof BookmarkDuplicatesDismissResponses];
+
 export type BookmarkLabelsCreateData = {
     body: LabelBookmarkWritable;
     path: {
@@ -6420,6 +6645,143 @@ export type BookmarkLabelsDeleteResponses = {
 };
 
 export type BookmarkLabelsDeleteResponse = BookmarkLabelsDeleteResponses[keyof BookmarkLabelsDeleteResponses];
+
+export type BookmarksMergeData = {
+    body: BookmarkMergeInputWritable;
+    path: {
+        bookmark: number;
+    };
+    query?: never;
+    url: '/bookmarks/{bookmark}/merge';
+};
+
+export type BookmarksMergeErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarksMergeError = BookmarksMergeErrors[keyof BookmarksMergeErrors];
+
+export type BookmarksMergeResponses = {
+    /**
+     * OK
+     */
+    200: Bookmark;
+};
+
+export type BookmarksMergeResponse = BookmarksMergeResponses[keyof BookmarksMergeResponses];
+
+export type BookmarkProjectsCreateData = {
+    body: BookmarkProjectWritable;
+    path: {
+        bookmark: number;
+    };
+    query?: never;
+    url: '/bookmarks/{bookmark}/projects';
+};
+
+export type BookmarkProjectsCreateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarkProjectsCreateError = BookmarkProjectsCreateErrors[keyof BookmarkProjectsCreateErrors];
+
+export type BookmarkProjectsCreateResponses = {
+    /**
+     * Created
+     */
+    201: BookmarkProject;
+};
+
+export type BookmarkProjectsCreateResponse = BookmarkProjectsCreateResponses[keyof BookmarkProjectsCreateResponses];
+
+export type BookmarkProjectsDeleteData = {
+    body?: never;
+    path: {
+        bookmark: number;
+        project: number;
+    };
+    query?: never;
+    url: '/bookmarks/{bookmark}/projects/{project}';
+};
+
+export type BookmarkProjectsDeleteErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarkProjectsDeleteError = BookmarkProjectsDeleteErrors[keyof BookmarkProjectsDeleteErrors];
+
+export type BookmarkProjectsDeleteResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type BookmarkProjectsDeleteResponse = BookmarkProjectsDeleteResponses[keyof BookmarkProjectsDeleteResponses];
+
+export type BookmarkTasksCreateData = {
+    body: BookmarkTaskWritable;
+    path: {
+        bookmark: number;
+    };
+    query?: never;
+    url: '/bookmarks/{bookmark}/tasks';
+};
+
+export type BookmarkTasksCreateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarkTasksCreateError = BookmarkTasksCreateErrors[keyof BookmarkTasksCreateErrors];
+
+export type BookmarkTasksCreateResponses = {
+    /**
+     * Created
+     */
+    201: BookmarkTask;
+};
+
+export type BookmarkTasksCreateResponse = BookmarkTasksCreateResponses[keyof BookmarkTasksCreateResponses];
+
+export type BookmarkTasksDeleteData = {
+    body?: never;
+    path: {
+        bookmark: number;
+        task: number;
+    };
+    query?: never;
+    url: '/bookmarks/{bookmark}/tasks/{task}';
+};
+
+export type BookmarkTasksDeleteErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarkTasksDeleteError = BookmarkTasksDeleteErrors[keyof BookmarkTasksDeleteErrors];
+
+export type BookmarkTasksDeleteResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type BookmarkTasksDeleteResponse = BookmarkTasksDeleteResponses[keyof BookmarkTasksDeleteResponses];
 
 export type BookmarksDeleteData = {
     body?: never;

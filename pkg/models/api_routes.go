@@ -220,6 +220,8 @@ func isStandardCRUDRoute(routeGroupName string, routeParts []string, _ string) b
 		"bookmarks":          true,
 		"bookmarks_comments": true,
 		"bookmarks_labels":   true,
+		"bookmarks_projects": true,
+		"bookmarks_tasks":    true,
 	}
 
 	// Check if this is a standard CRUD resource

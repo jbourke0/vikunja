@@ -31,11 +31,11 @@
 				autocapitalize="off"
 				spellcheck="false"
 				:placeholder="$t('johnnysBrain.bookmarks.urlPlaceholder')"
-				:disabled="createMutation.isPending.value"
+				:disabled="isSaving"
 			>
 			<XButton
 				type="submit"
-				:loading="createMutation.isPending.value"
+				:loading="isSaving"
 				:disabled="newUrl.trim() === ''"
 			>
 				{{ $t('johnnysBrain.bookmarks.save') }}
@@ -127,6 +127,13 @@
 							v-if="!status"
 							class="jb-bookmark-row__status"
 						>{{ statusLabel(bookmark.status) }}</span>
+						<span
+							v-if="bookmark.duplicate_count"
+							class="jb-bookmark-row__duplicate"
+						>
+							<Icon icon="clone" />
+							{{ $t('johnnysBrain.duplicates.badge') }}
+						</span>
 					</div>
 				</div>
 				<div class="jb-bookmark-row__actions">
@@ -170,9 +177,11 @@ import {
 	type BookmarkStatus,
 	bookmarksQuery,
 	hostOf,
-	useCreateBookmarkMutation,
 	useUpdateBookmarkMutation,
 } from '@/client/queries/bookmarks'
+import {useRouter} from 'vue-router'
+import {success} from '@/message'
+import {useSaveLink} from './useSaveLink'
 
 const props = defineProps<{
 	status?: BookmarkStatus
@@ -203,21 +212,18 @@ const showLoading = useDelayedLoading(computed(() => query.isFetching.value))
 const brokenIcons = reactive(new Set<number>())
 
 const newUrl = ref('')
-const createMutation = useCreateBookmarkMutation()
-
-function withScheme(raw: string): string {
-	const trimmed = raw.trim()
-	return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
-}
+const router = useRouter()
+const {save: saveLink, isSaving} = useSaveLink()
 
 async function save() {
 	if (newUrl.value.trim() === '') return
-	try {
-		await createMutation.mutateAsync({url: withScheme(newUrl.value), status: props.status ?? 'to_read'})
-	} catch {
-		return
-	}
+	const saved = await saveLink(newUrl.value, props.status ?? 'to_read')
+	if (!saved) return
 	newUrl.value = ''
+	if (saved.alreadySaved) {
+		success({message: t('johnnysBrain.bookmarks.alreadySaved')})
+		router.push({name: 'bookmarks.detail', params: {bookmarkId: saved.bookmark.id}})
+	}
 }
 
 const updateMutation = useUpdateBookmarkMutation()
@@ -396,6 +402,13 @@ function setStatus(bookmark: BookmarkResponse, status: BookmarkStatus) {
 
 .jb-bookmark-row__status {
 	color: var(--jb-date-tomorrow);
+}
+
+.jb-bookmark-row__duplicate {
+	display: inline-flex;
+	align-items: center;
+	gap: .3rem;
+	color: var(--jb-prio-high, #ff9a14);
 }
 
 .jb-bookmark-row__actions {

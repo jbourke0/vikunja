@@ -1,4 +1,4 @@
-// Johnny's Brain: bookmarks, their labels and comments.
+// Johnny's Brain: bookmarks, their labels, comments, sources and duplicates.
 import {queryOptions, useMutation} from '@tanstack/vue-query'
 import type {QueryClient} from '@tanstack/vue-query'
 
@@ -6,15 +6,30 @@ import {
 	bookmarkCommentsCreate,
 	bookmarkCommentsDelete,
 	bookmarkCommentsList,
+	bookmarkDuplicatesDismiss,
+	bookmarkDuplicatesList,
 	bookmarkLabelsCreate,
 	bookmarkLabelsDelete,
+	bookmarkProjectsCreate,
+	bookmarkProjectsDelete,
+	bookmarkTasksCreate,
+	bookmarkTasksDelete,
 	bookmarksCreate,
 	bookmarksDelete,
 	bookmarksList,
+	bookmarksMerge,
 	bookmarksRead,
 	bookmarksUpdate,
 } from '@/client/generated'
-import type {Bookmark, BookmarkComment, BookmarkWritable, Label} from '@/client/generated'
+import type {
+	Bookmark,
+	BookmarkComment,
+	BookmarkLinkedProject,
+	BookmarkLinkedTask,
+	BookmarkWritable,
+	Label,
+} from '@/client/generated'
+import {ApiError} from '@/client/problem'
 import {contextMutationOptions} from './contextMutation'
 import {fetchAllPages} from './fetchAllPages'
 import {i18n} from '@/i18n'
@@ -29,6 +44,9 @@ export type BookmarkResponse = Bookmark & {
 	title: string
 	status: BookmarkStatus
 	labels: Label[]
+	projects: BookmarkLinkedProject[]
+	tasks: BookmarkLinkedTask[]
+	duplicate_count: number
 }
 
 export function normalizeBookmark(bookmark: Bookmark): BookmarkResponse {
@@ -39,6 +57,9 @@ export function normalizeBookmark(bookmark: Bookmark): BookmarkResponse {
 		title: bookmark.title ?? '',
 		status: bookmark.status ?? 'to_read',
 		labels: bookmark.labels ?? [],
+		projects: bookmark.projects ?? [],
+		tasks: bookmark.tasks ?? [],
+		duplicate_count: bookmark.duplicate_count ?? 0,
 	}
 }
 
@@ -46,6 +67,8 @@ export type BookmarkFilters = {
 	status?: BookmarkStatus
 	q?: string
 	label_id?: number
+	project_id?: number
+	task_id?: number
 }
 
 export const bookmarkKeys = {
@@ -54,6 +77,7 @@ export const bookmarkKeys = {
 	list: (filters: BookmarkFilters) => [...bookmarkKeys.lists(), filters] as const,
 	detail: (id: number) => [...bookmarkKeys.all, 'detail', id] as const,
 	comments: (id: number) => [...bookmarkKeys.all, 'comments', id] as const,
+	duplicates: (id: number) => [...bookmarkKeys.all, 'duplicates', id] as const,
 }
 
 function cleanFilters(filters: BookmarkFilters): BookmarkFilters {
@@ -61,6 +85,8 @@ function cleanFilters(filters: BookmarkFilters): BookmarkFilters {
 		...(filters.status ? {status: filters.status} : {}),
 		...(filters.q?.trim() ? {q: filters.q.trim()} : {}),
 		...(filters.label_id ? {label_id: filters.label_id} : {}),
+		...(filters.project_id ? {project_id: filters.project_id} : {}),
+		...(filters.task_id ? {task_id: filters.task_id} : {}),
 	}
 }
 
@@ -113,14 +139,20 @@ function writableBody(bookmark: BookmarkWritable): BookmarkWritable {
 	}
 }
 
+export type CreateBookmarkInput = BookmarkWritable & {
+	/** Set when the caller handles a 409 "already saved" itself, so no error toast is shown. */
+	handlesAlreadySaved?: boolean
+}
+
 export function createBookmarkMutationOptions() {
 	return contextMutationOptions({
-		mutationFn: async (input: BookmarkWritable) => {
+		mutationFn: async ({handlesAlreadySaved: _handles, ...input}: CreateBookmarkInput) => {
 			const {data} = await bookmarksCreate({body: writableBody(input)})
 			return normalizeBookmark(data)
 		},
 		onSettled: (_input, client) => client.invalidateQueries({queryKey: bookmarkKeys.lists()}),
 		successMessage: () => i18n.global.t('johnnysBrain.bookmarks.saved'),
+		toastError: input => !input.handlesAlreadySaved,
 	})
 }
 
@@ -248,4 +280,152 @@ export function useCreateBookmarkCommentMutation() {
 
 export function useDeleteBookmarkCommentMutation() {
 	return useMutation(deleteBookmarkCommentMutationOptions())
+}
+
+// ---------------------------------------------------------------------------
+// Saving a link that may already exist
+// ---------------------------------------------------------------------------
+
+export function isAlreadySaved(e: unknown): boolean {
+	return e instanceof ApiError && e.status === 409 && e.code === 90008
+}
+
+/** The caller's bookmark for a link, compared the way the server does (tracking parameters ignored). */
+export async function findBookmarkByUrl(url: string): Promise<BookmarkResponse | undefined> {
+	const {data} = await bookmarksList({query: {url, page: 1}})
+	const found = data.items?.[0]
+	return found ? normalizeBookmark(found) : undefined
+}
+
+// ---------------------------------------------------------------------------
+// Sources: links to projects and tasks
+// ---------------------------------------------------------------------------
+
+function invalidateBookmarkAndLists(client: QueryClient, bookmarkId: number) {
+	return Promise.all([
+		client.invalidateQueries({queryKey: bookmarkKeys.lists()}),
+		client.invalidateQueries({queryKey: bookmarkKeys.detail(bookmarkId), exact: true}),
+	])
+}
+
+export type BookmarkProjectInput = {bookmarkId: number, projectId: number}
+export type BookmarkTaskInput = {bookmarkId: number, taskId: number}
+
+export function linkBookmarkProjectMutationOptions() {
+	return contextMutationOptions({
+		mutationFn: async ({bookmarkId, projectId}: BookmarkProjectInput) => {
+			await bookmarkProjectsCreate({path: {bookmark: bookmarkId}, body: {project_id: projectId}})
+		},
+		onSettled: ({bookmarkId}, client) => invalidateBookmarkAndLists(client, bookmarkId),
+	})
+}
+
+export function unlinkBookmarkProjectMutationOptions() {
+	return contextMutationOptions({
+		mutationFn: async ({bookmarkId, projectId}: BookmarkProjectInput) => {
+			await bookmarkProjectsDelete({path: {bookmark: bookmarkId, project: projectId}})
+		},
+		onSettled: ({bookmarkId}, client) => invalidateBookmarkAndLists(client, bookmarkId),
+	})
+}
+
+export function linkBookmarkTaskMutationOptions() {
+	return contextMutationOptions({
+		mutationFn: async ({bookmarkId, taskId}: BookmarkTaskInput) => {
+			await bookmarkTasksCreate({path: {bookmark: bookmarkId}, body: {task_id: taskId}})
+		},
+		onSettled: ({bookmarkId}, client) => invalidateBookmarkAndLists(client, bookmarkId),
+	})
+}
+
+export function unlinkBookmarkTaskMutationOptions() {
+	return contextMutationOptions({
+		mutationFn: async ({bookmarkId, taskId}: BookmarkTaskInput) => {
+			await bookmarkTasksDelete({path: {bookmark: bookmarkId, task: taskId}})
+		},
+		onSettled: ({bookmarkId}, client) => invalidateBookmarkAndLists(client, bookmarkId),
+	})
+}
+
+export function useLinkBookmarkProjectMutation() {
+	return useMutation(linkBookmarkProjectMutationOptions())
+}
+
+export function useUnlinkBookmarkProjectMutation() {
+	return useMutation(unlinkBookmarkProjectMutationOptions())
+}
+
+export function useLinkBookmarkTaskMutation() {
+	return useMutation(linkBookmarkTaskMutationOptions())
+}
+
+export function useUnlinkBookmarkTaskMutation() {
+	return useMutation(unlinkBookmarkTaskMutationOptions())
+}
+
+// ---------------------------------------------------------------------------
+// Duplicates
+// ---------------------------------------------------------------------------
+
+export function bookmarkDuplicatesQuery(bookmarkId: number) {
+	return queryOptions({
+		queryKey: bookmarkKeys.duplicates(bookmarkId),
+		queryFn: async () => {
+			const {data} = await bookmarkDuplicatesList({path: {bookmark: bookmarkId}})
+			return (data ?? []).map(suggestion => ({
+				...suggestion,
+				bookmark: normalizeBookmark(suggestion.bookmark ?? {}),
+			}))
+		},
+	})
+}
+
+export type DuplicatePairInput = {bookmarkId: number, otherId: number}
+
+function invalidatePair(client: QueryClient, {bookmarkId, otherId}: DuplicatePairInput) {
+	return Promise.all([
+		client.invalidateQueries({queryKey: bookmarkKeys.duplicates(bookmarkId), exact: true}),
+		client.invalidateQueries({queryKey: bookmarkKeys.duplicates(otherId), exact: true}),
+		client.invalidateQueries({queryKey: bookmarkKeys.detail(bookmarkId), exact: true}),
+		client.invalidateQueries({queryKey: bookmarkKeys.detail(otherId), exact: true}),
+		client.invalidateQueries({queryKey: bookmarkKeys.lists()}),
+	])
+}
+
+export function dismissBookmarkDuplicateMutationOptions() {
+	return contextMutationOptions({
+		mutationFn: async ({bookmarkId, otherId}: DuplicatePairInput) => {
+			await bookmarkDuplicatesDismiss({path: {bookmark: bookmarkId, other: otherId}})
+		},
+		onSettled: (input, client) => invalidatePair(client, input),
+	})
+}
+
+export function mergeBookmarksMutationOptions() {
+	return contextMutationOptions({
+		mutationFn: async ({bookmarkId, otherId}: DuplicatePairInput) => {
+			const {data} = await bookmarksMerge({path: {bookmark: bookmarkId}, body: {source_id: otherId}})
+			return normalizeBookmark(data)
+		},
+		onSuccess: (_merged, {otherId}, client) => {
+			client.removeQueries({queryKey: bookmarkKeys.detail(otherId), exact: true})
+			client.removeQueries({queryKey: bookmarkKeys.comments(otherId), exact: true})
+			client.removeQueries({queryKey: bookmarkKeys.duplicates(otherId), exact: true})
+		},
+		onSettled: ({bookmarkId}, client) => Promise.all([
+			client.invalidateQueries({queryKey: bookmarkKeys.lists()}),
+			client.invalidateQueries({queryKey: bookmarkKeys.detail(bookmarkId), exact: true}),
+			client.invalidateQueries({queryKey: bookmarkKeys.comments(bookmarkId), exact: true}),
+			client.invalidateQueries({queryKey: bookmarkKeys.duplicates(bookmarkId), exact: true}),
+		]),
+		successMessage: () => i18n.global.t('johnnysBrain.bookmarks.merged'),
+	})
+}
+
+export function useDismissBookmarkDuplicateMutation() {
+	return useMutation(dismissBookmarkDuplicateMutationOptions())
+}
+
+export function useMergeBookmarksMutation() {
+	return useMutation(mergeBookmarksMutationOptions())
 }

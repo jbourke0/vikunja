@@ -95,6 +95,7 @@ import {
 	faInbox,
 	faBookmark,
 	faGlobe,
+	faClone,
 } from '@fortawesome/free-solid-svg-icons'
 import {
 	faBellSlash,
@@ -185,6 +186,7 @@ library.add(faPlus)
 library.add(faInbox)
 library.add(faBookmark)
 library.add(faGlobe)
+library.add(faClone)
 library.add(faCalendarRegular)
 library.add(faPowerOff)
 library.add(faRss)

@@ -37,6 +37,7 @@ import (
 
 // RegisterListeners registers all event listeners
 func RegisterListeners() {
+	registerBookmarkListeners() // Johnny's Brain
 	events.RegisterListener((&TaskCommentCreatedEvent{}).Name(), &SendTaskCommentNotification{})
 	events.RegisterListener((&TaskAssigneeCreatedEvent{}).Name(), &SendTaskAssignedNotification{})
 	events.RegisterListener((&TaskCreatedEvent{}).Name(), &SendTaskCreatedNotification{})

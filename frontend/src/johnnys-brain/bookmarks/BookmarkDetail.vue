@@ -68,6 +68,59 @@
 				loading="lazy"
 			>
 
+			<section
+				v-if="duplicates.length"
+				class="jb-bookmark__section jb-duplicates"
+				:aria-label="$t('johnnysBrain.duplicates.title')"
+			>
+				<h3 class="jb-bookmark__label jb-duplicates__heading">
+					<Icon icon="clone" />
+					{{ $t('johnnysBrain.duplicates.title', {count: duplicates.length}, duplicates.length) }}
+				</h3>
+				<ul class="jb-duplicates__list">
+					<li
+						v-for="suggestion in duplicates"
+						:key="suggestion.bookmark.id"
+						class="jb-duplicates__item"
+					>
+						<div class="jb-duplicates__body">
+							<RouterLink
+								:to="{name: 'bookmarks.detail', params: {bookmarkId: suggestion.bookmark.id}}"
+								class="jb-duplicates__title"
+							>
+								{{ suggestion.bookmark.title }}
+							</RouterLink>
+							<span class="jb-duplicates__meta">
+								{{ hostOf(suggestion.bookmark.url) }}
+								<span class="jb-duplicates__reason">{{ suggestion.reason === 'ai' ? $t('johnnysBrain.duplicates.reasonAi') : $t('johnnysBrain.duplicates.reasonSimilar') }}</span>
+							</span>
+							<span
+								v-if="suggestion.explanation"
+								class="jb-duplicates__explanation"
+							>{{ suggestion.explanation }}</span>
+						</div>
+						<div
+							v-if="canEdit"
+							class="jb-duplicates__actions"
+						>
+							<XButton
+								variant="secondary"
+								:loading="mergeMutation.isPending.value && mergingId === suggestion.bookmark.id"
+								@click="merge(suggestion.bookmark.id, suggestion.bookmark.title)"
+							>
+								{{ $t('johnnysBrain.duplicates.merge') }}
+							</XButton>
+							<XButton
+								variant="tertiary"
+								@click="dismiss(suggestion.bookmark.id)"
+							>
+								{{ $t('johnnysBrain.duplicates.dismiss') }}
+							</XButton>
+						</div>
+					</li>
+				</ul>
+			</section>
+
 			<section class="jb-bookmark__section">
 				<div
 					class="jb-segmented"
@@ -139,6 +192,82 @@
 						v-if="!bookmark.labels.length && !(canEdit && availableLabels.length)"
 						class="jb-muted"
 					>{{ $t('johnnysBrain.bookmarks.noLabels') }}</span>
+				</div>
+			</section>
+
+			<section class="jb-bookmark__section">
+				<h3 class="jb-bookmark__label">
+					{{ $t('johnnysBrain.sources.linkedTo') }}
+				</h3>
+				<div class="jb-bookmark__labels">
+					<span
+						v-for="project in bookmark.projects"
+						:key="`p${project.id}`"
+						class="jb-chip"
+					>
+						<span
+							class="jb-dot"
+							:style="{background: project.hex_color ? `#${project.hex_color}` : undefined}"
+						/>
+						<RouterLink :to="{name: 'project.index', params: {projectId: project.id}}">
+							{{ project.title }}
+						</RouterLink>
+						<BaseButton
+							v-if="canEdit"
+							class="jb-chip__remove"
+							:aria-label="$t('johnnysBrain.sources.unlink', {title: project.title})"
+							@click="unlinkProject.mutate({bookmarkId, projectId: project.id ?? 0})"
+						>
+							<Icon icon="times" />
+						</BaseButton>
+					</span>
+					<span
+						v-for="task in bookmark.tasks"
+						:key="`t${task.id}`"
+						class="jb-chip"
+						:class="{'is-done': task.done}"
+					>
+						<Icon
+							icon="check"
+							class="jb-chip__task-icon"
+						/>
+						<RouterLink :to="{name: 'task.detail', params: {id: task.id}}">
+							{{ task.title }}
+						</RouterLink>
+						<BaseButton
+							v-if="canEdit"
+							class="jb-chip__remove"
+							:aria-label="$t('johnnysBrain.sources.unlink', {title: task.title})"
+							@click="unlinkTask.mutate({bookmarkId, taskId: task.id ?? 0})"
+						>
+							<Icon icon="times" />
+						</BaseButton>
+					</span>
+					<select
+						v-if="canEdit && linkableProjects.length"
+						class="jb-bookmark__add-label"
+						:aria-label="$t('johnnysBrain.sources.linkProject')"
+						value=""
+						@change="linkToProject(($event.target as HTMLSelectElement))"
+					>
+						<option
+							value=""
+							disabled
+						>
+							+ {{ $t('johnnysBrain.sources.linkProject') }}
+						</option>
+						<option
+							v-for="project in linkableProjects"
+							:key="project.id"
+							:value="project.id"
+						>
+							{{ project.title }}
+						</option>
+					</select>
+					<span
+						v-if="!bookmark.projects.length && !bookmark.tasks.length"
+						class="jb-muted"
+					>{{ $t('johnnysBrain.sources.notLinked') }}</span>
 				</div>
 			</section>
 
@@ -266,21 +395,27 @@ import XButton from '@/components/input/Button.vue'
 import {useTitle} from '@/composables/useTitle'
 import {useLabels} from '@/composables/useLabels'
 import {useAuthStore} from '@/stores/auth'
-import {useGlobalNow} from '@/composables/useGlobalNow'
 import {formatDateLong, formatDisplayDate} from '@/helpers/time/formatDate'
 import {
 	BOOKMARK_STATUSES,
 	type BookmarkStatus,
 	bookmarkCommentsQuery,
+	bookmarkDuplicatesQuery,
 	bookmarkQuery,
 	hostOf,
 	useAddBookmarkLabelMutation,
 	useCreateBookmarkCommentMutation,
 	useDeleteBookmarkCommentMutation,
 	useDeleteBookmarkMutation,
+	useDismissBookmarkDuplicateMutation,
+	useLinkBookmarkProjectMutation,
+	useMergeBookmarksMutation,
 	useRemoveBookmarkLabelMutation,
+	useUnlinkBookmarkProjectMutation,
+	useUnlinkBookmarkTaskMutation,
 	useUpdateBookmarkMutation,
 } from '@/client/queries/bookmarks'
+import {useProjects} from '@/composables/useProjects'
 
 const props = defineProps<{
 	bookmarkId: number
@@ -288,9 +423,6 @@ const props = defineProps<{
 
 const {t} = useI18n({useScope: 'global'})
 const router = useRouter()
-// Initialise the shared clock during setup: the date formatters below would otherwise create it
-// mid-render, where its route hook cannot be registered.
-useGlobalNow()
 const authStore = useAuthStore()
 const currentUserId = computed(() => authStore.info?.id)
 
@@ -379,6 +511,48 @@ async function addComment() {
 function deleteComment(commentId: number) {
 	if (!window.confirm(t('johnnysBrain.bookmarks.confirmDeleteComment'))) return
 	deleteCommentMutation.mutate({bookmarkId: props.bookmarkId, commentId})
+}
+
+// Sources
+const bookmarkId = computed(() => props.bookmarkId)
+const projectList = useProjects()
+const linkableProjects = computed(() => {
+	const linked = new Set((bookmark.value?.projects ?? []).map(p => p.id))
+	return projectList.projectsArray
+		.filter(p => p.id > 0 && !p.is_archived && !linked.has(p.id))
+		.sort((a, b) => (a.title ?? '').localeCompare(b.title ?? ''))
+})
+const linkProject = useLinkBookmarkProjectMutation()
+const unlinkProject = useUnlinkBookmarkProjectMutation()
+const unlinkTask = useUnlinkBookmarkTaskMutation()
+
+function linkToProject(select: HTMLSelectElement) {
+	const projectId = Number(select.value)
+	select.value = ''
+	if (projectId) linkProject.mutate({bookmarkId: props.bookmarkId, projectId})
+}
+
+// Duplicates
+const duplicatesQueryResult = useQuery(computed(() => bookmarkDuplicatesQuery(props.bookmarkId)))
+const duplicates = computed(() => duplicatesQueryResult.data.value ?? [])
+const dismissMutation = useDismissBookmarkDuplicateMutation()
+const mergeMutation = useMergeBookmarksMutation()
+const mergingId = ref<number | null>(null)
+
+function dismiss(otherId: number) {
+	dismissMutation.mutate({bookmarkId: props.bookmarkId, otherId})
+}
+
+async function merge(otherId: number, otherTitle: string) {
+	if (!window.confirm(t('johnnysBrain.duplicates.confirmMerge', {title: otherTitle}))) return
+	mergingId.value = otherId
+	try {
+		await mergeMutation.mutateAsync({bookmarkId: props.bookmarkId, otherId})
+	} catch {
+		// toasted by the mutation
+	} finally {
+		mergingId.value = null
+	}
 }
 
 const deleteMutation = useDeleteBookmarkMutation()
@@ -678,5 +852,93 @@ async function remove() {
 	gap: 1rem;
 	padding-block-start: 1rem;
 	border-block-start: 1px solid var(--jb-divider);
+}
+.jb-duplicates {
+	padding: .9rem 1rem;
+	border-radius: var(--jb-radius-card, 16px);
+	border: 1px solid color-mix(in srgb, var(--jb-prio-high, #ff9a14) 45%, transparent);
+	background: color-mix(in srgb, var(--jb-prio-high, #ff9a14) 7%, transparent);
+}
+
+.jb-duplicates__heading {
+	display: flex;
+	align-items: center;
+	gap: .45rem;
+	color: var(--jb-prio-high, #ff9a14);
+}
+
+.jb-duplicates__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.jb-duplicates__item {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: .5rem 1rem;
+	padding-block: .55rem;
+
+	& + & {
+		border-block-start: 1px solid var(--jb-divider, var(--grey-200));
+	}
+}
+
+.jb-duplicates__body {
+	flex: 1 1 16rem;
+	min-inline-size: 0;
+	display: flex;
+	flex-direction: column;
+	gap: .1rem;
+}
+
+.jb-duplicates__title {
+	color: var(--text);
+	font-weight: 600;
+	overflow-wrap: anywhere;
+
+	&:hover {
+		color: var(--jb-green);
+	}
+}
+
+.jb-duplicates__meta {
+	display: flex;
+	gap: .6rem;
+	color: var(--grey-500);
+	font-size: .8rem;
+}
+
+.jb-duplicates__reason {
+	color: var(--jb-prio-high, #ff9a14);
+}
+
+.jb-duplicates__explanation {
+	color: var(--text);
+	font-size: .85rem;
+}
+
+.jb-duplicates__actions {
+	display: flex;
+	gap: .4rem;
+}
+
+.jb-chip.is-done a {
+	text-decoration: line-through;
+	color: var(--grey-500);
+}
+
+.jb-chip a {
+	color: var(--text);
+
+	&:hover {
+		color: var(--jb-green);
+	}
+}
+
+.jb-chip__task-icon {
+	color: var(--grey-500);
+	font-size: .7rem;
 }
 </style>

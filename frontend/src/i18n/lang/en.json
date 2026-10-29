@@ -1852,7 +1852,33 @@
       "confirmDeleteComment": "Delete this comment?",
       "savedOn": "Saved {date}",
       "delete": "Delete bookmark",
-      "confirmDelete": "Delete this bookmark, its comments and its labels? This can't be undone."
+      "confirmDelete": "Delete this bookmark, its comments and its labels? This can't be undone.",
+      "alreadySaved": "You'd already saved that link, so here it is.",
+      "merged": "Bookmarks merged."
+    },
+    "sources": {
+      "title": "Sources",
+      "empty": "No sources yet. Paste a link or search your bookmarks to add one.",
+      "add": "Add a source",
+      "addPlaceholder": "Paste a link or search your bookmarks",
+      "addLink": "Add",
+      "remove": "Remove {title} from sources",
+      "linkedExisting": "Already saved, so linked \"{title}\".",
+      "projectTitle": "Sources for {project}",
+      "projectIntro": "Bookmarks that inform this project. Anyone who can see the project can open them and comment.",
+      "linkedTo": "Linked to",
+      "unlink": "Unlink {title}",
+      "linkProject": "Link to project",
+      "notLinked": "Not linked to any project or task yet."
+    },
+    "duplicates": {
+      "title": "Possible duplicate | {count} possible duplicates",
+      "badge": "Possible duplicate",
+      "reasonAi": "Same thing (AI check)",
+      "reasonSimilar": "Very similar",
+      "merge": "Merge into this",
+      "dismiss": "Not a duplicate",
+      "confirmMerge": "Merge \"{title}\" into this bookmark? Its labels, comments and links move here, then it is deleted."
     }
   }
 }
