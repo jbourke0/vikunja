@@ -85,19 +85,36 @@
 			:has-content="false"
 			:loading="loading"
 		>
-			<ul class="p-2 tasks">
-				<li
-					v-for="task in tasks"
-					:key="task.id"
+			<section
+				v-for="group in dayGroups"
+				:key="group.key"
+				class="jb-day-group"
+			>
+				<h3
+					class="jb-day-group__heading"
+					:class="`is-${group.tone}`"
 				>
-					<SingleTaskInProject
-						:show-project="true"
-						:the-task="task"
-						:can-mark-as-done="(projectList.projects[task.project_id]?.max_permission ?? 0) > PERMISSIONS.READ"
-						@taskUpdated="updateTasks"
-					/>
-				</li>
-			</ul>
+					{{ group.title }}
+					<span
+						v-if="group.subtitle"
+						class="jb-day-group__date"
+					>{{ group.subtitle }}</span>
+					<span class="jb-day-group__count">{{ group.tasks.length }}</span>
+				</h3>
+				<ul class="p-2 tasks">
+					<li
+						v-for="task in group.tasks"
+						:key="task.id"
+					>
+						<SingleTaskInProject
+							:show-project="true"
+							:the-task="task"
+							:can-mark-as-done="(projectList.projects[task.project_id]?.max_permission ?? 0) > PERMISSIONS.READ"
+							@taskUpdated="updateTasks"
+						/>
+					</li>
+				</ul>
+			</section>
 		</Card>
 		<div
 			v-else
@@ -120,6 +137,8 @@ import Icon from '@/components/misc/Icon'
 import Message from '@/components/misc/Message.vue'
 import FancyCheckbox from '@/components/input/FancyCheckbox.vue'
 import SingleTaskInProject from '@/components/tasks/partials/SingleTaskInProject.vue'
+import {groupTasksByDay} from '@/johnnys-brain/groupByDay'
+import {useGlobalNow} from '@/composables/useGlobalNow'
 import DatepickerWithRange from '@/components/date/DatepickerWithRange.vue'
 import XLabel from '@/components/tasks/partials/Label.vue'
 import {DATE_RANGES} from '@/components/date/dateRanges'
@@ -158,7 +177,7 @@ const {getLabelById} = useLabels()
 
 const route = useRoute()
 const router = useRouter()
-const {t} = useI18n({useScope: 'global'})
+const {t, locale} = useI18n({useScope: 'global'})
 
 const taskScope = ref<TaskScope | null>(null)
 const taskQuery = useTasks(
@@ -166,6 +185,15 @@ const taskQuery = useTasks(
 	{enabled: () => authStore.authenticated && taskScope.value !== null},
 )
 const tasks = taskQuery.tasks
+
+// Johnny's Brain: Todoist-style day headings
+const {now: globalNow} = useGlobalNow()
+const dayGroups = computed(() => groupTasksByDay(tasks.value, globalNow.value, {
+	overdue: t('johnnysBrain.days.overdue'),
+	today: t('johnnysBrain.days.today'),
+	tomorrow: t('johnnysBrain.days.tomorrow'),
+	noDate: t('johnnysBrain.days.noDate'),
+}, locale.value))
 const showNothingToDo = ref<boolean>(false)
 
 

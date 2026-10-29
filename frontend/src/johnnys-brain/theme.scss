@@ -557,3 +557,47 @@ html[data-jb-view="today"] #app .show-tasks-options {
 		color: var(--grey-400);
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Day headings in the task lists (Todoist's Upcoming)
+// ---------------------------------------------------------------------------
+
+#app .jb-day-group {
+	& + & {
+		margin-block-start: 1.25rem;
+	}
+
+	.jb-day-group__heading {
+		display: flex;
+		align-items: baseline;
+		gap: .5rem;
+		margin: 0;
+		padding: .5rem .25rem .4rem;
+		border-block-end: 1px solid var(--jb-divider);
+		font-family: var(--jb-font-body);
+		font-size: .95rem;
+		font-weight: 700 !important;
+		letter-spacing: 0;
+
+		&.is-overdue { color: var(--jb-date-overdue); }
+		&.is-today { color: var(--jb-date-today); }
+		&.is-tomorrow { color: var(--jb-date-tomorrow); }
+	}
+
+	.jb-day-group__date {
+		color: var(--grey-500);
+		font-size: .85rem;
+		font-weight: 500;
+	}
+
+	.jb-day-group__count {
+		margin-inline-start: auto;
+		color: var(--grey-500);
+		font-size: .8rem;
+		font-weight: 500;
+	}
+
+	.tasks {
+		padding-block-start: 0 !important;
+	}
+}

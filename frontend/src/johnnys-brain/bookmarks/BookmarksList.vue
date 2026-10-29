@@ -8,12 +8,20 @@
 				v-if="!isPending"
 				class="jb-bookmarks__count"
 			>{{ $t('johnnysBrain.bookmarks.count', {count: bookmarks.length}, bookmarks.length) }}</span>
-			<RouterLink
-				:to="{name: 'bookmarks.share'}"
-				class="jb-bookmarks__share"
-			>
-				{{ $t('johnnysBrain.share.setupLink') }}
-			</RouterLink>
+			<span class="jb-bookmarks__links">
+				<RouterLink
+					:to="{name: 'bookmarks.import'}"
+					class="jb-bookmarks__share"
+				>
+					{{ $t('johnnysBrain.bookmarks.importLink') }}
+				</RouterLink>
+				<RouterLink
+					:to="{name: 'bookmarks.share'}"
+					class="jb-bookmarks__share"
+				>
+					{{ $t('johnnysBrain.share.setupLink') }}
+				</RouterLink>
+			</span>
 		</header>
 
 		<form
@@ -56,13 +64,17 @@
 				<RouterLink
 					v-for="tab in tabs"
 					:key="tab.key"
-					:to="{name: 'bookmarks.index', query: tab.status ? {status: tab.status} : {}}"
+					:to="{name: 'bookmarks.index', query: tab.query}"
 					class="jb-bookmarks__tab"
-					:class="{'is-active': (status ?? 'all') === tab.key}"
+					:class="{'is-active': activeTab === tab.key}"
 					active-class=""
 					exact-active-class=""
 				>
 					{{ tab.label }}
+					<span
+						v-if="tab.key === 'broken'"
+						class="jb-bookmarks__tab-count"
+					>{{ brokenCount }}</span>
 				</RouterLink>
 			</nav>
 			<label class="jb-bookmarks__search">
@@ -135,11 +147,11 @@
 							class="jb-bookmark-row__status"
 						>{{ statusLabel(bookmark.status) }}</span>
 						<span
-							v-if="isPageGone(bookmark.link_status)"
+							v-if="pageProblem(bookmark.link_status)"
 							class="jb-bookmark-row__gone"
 						>
 							<Icon icon="triangle-exclamation" />
-							{{ $t('johnnysBrain.page.gone') }}
+							{{ $t(`johnnysBrain.page.problem.${pageProblem(bookmark.link_status)}`) }}
 						</span>
 						<span
 							v-if="bookmark.duplicate_count"
@@ -190,8 +202,9 @@ import {
 	type BookmarkResponse,
 	type BookmarkStatus,
 	bookmarksQuery,
+	brokenCountQuery,
 	hostOf,
-	isPageGone,
+	pageProblem,
 	useUpdateBookmarkMutation,
 } from '@/client/queries/bookmarks'
 import {useRouter} from 'vue-router'
@@ -200,16 +213,21 @@ import {useSaveLink} from './useSaveLink'
 
 const props = defineProps<{
 	status?: BookmarkStatus
+	broken?: boolean
 }>()
+
+const activeTab = computed(() => props.broken ? 'broken' : (props.status ?? 'all'))
 
 const {t} = useI18n({useScope: 'global'})
 useTitle(() => t('johnnysBrain.bookmarks.title'))
 
 const tabs = computed(() => [
-	{key: 'to_read', status: 'to_read' as const, label: t('johnnysBrain.bookmarks.status.to_read')},
-	{key: 'reference', status: 'reference' as const, label: t('johnnysBrain.bookmarks.status.reference')},
-	{key: 'archived', status: 'archived' as const, label: t('johnnysBrain.bookmarks.status.archived')},
-	{key: 'all', status: undefined, label: t('johnnysBrain.bookmarks.all')},
+	{key: 'to_read', query: {status: 'to_read'}, label: t('johnnysBrain.bookmarks.status.to_read')},
+	{key: 'reference', query: {status: 'reference'}, label: t('johnnysBrain.bookmarks.status.reference')},
+	{key: 'archived', query: {status: 'archived'}, label: t('johnnysBrain.bookmarks.status.archived')},
+	{key: 'all', query: {}, label: t('johnnysBrain.bookmarks.all')},
+	// Only worth a tab once a link check has found something.
+	...(brokenCount.value > 0 ? [{key: 'broken', query: {broken: 'true'}, label: t('johnnysBrain.bookmarks.broken')}] : []),
 ])
 
 function statusLabel(status: BookmarkStatus) {
@@ -219,8 +237,10 @@ function statusLabel(status: BookmarkStatus) {
 const search = ref('')
 const debouncedSearch = refDebounced(search, 250)
 
-const query = useQuery(computed(() => bookmarksQuery({status: props.status, q: debouncedSearch.value})))
+const query = useQuery(computed(() => bookmarksQuery({status: props.status, q: debouncedSearch.value, broken: props.broken})))
 const bookmarks = computed(() => query.data.value ?? [])
+const brokenCountQueryResult = useQuery(brokenCountQuery())
+const brokenCount = computed(() => brokenCountQueryResult.data.value ?? 0)
 const isPending = computed(() => query.isPending.value)
 const showLoading = useDelayedLoading(computed(() => query.isFetching.value))
 
@@ -265,8 +285,14 @@ function setStatus(bookmark: BookmarkResponse, status: BookmarkStatus) {
 	font-size: .9rem;
 }
 
-.jb-bookmarks__share {
+.jb-bookmarks__links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: .25rem 1.1rem;
 	margin-inline-start: auto;
+}
+
+.jb-bookmarks__share {
 	color: var(--jb-green);
 	font-size: .9rem;
 	font-weight: 500;
@@ -307,6 +333,16 @@ function setStatus(bookmark: BookmarkResponse, status: BookmarkStatus) {
 	display: flex;
 	gap: .25rem;
 	overflow-x: auto;
+}
+
+.jb-bookmarks__tab-count {
+	margin-inline-start: .3rem;
+	padding: .05rem .45rem;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--jb-prio-high, #ff9a14) 25%, transparent);
+	color: var(--jb-prio-high, #ff9a14);
+	font-size: .75rem;
+	font-weight: 600;
 }
 
 .jb-bookmarks__tab {

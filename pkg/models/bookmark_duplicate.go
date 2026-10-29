@@ -164,6 +164,12 @@ type duplicateCandidate struct {
 // DetectDuplicatesForBookmark recomputes the open duplicate suggestions involving a bookmark.
 // Dismissed pairs are never suggested again.
 func DetectDuplicatesForBookmark(ctx context.Context, s *xorm.Session, bookmarkID int64) error {
+	return detectDuplicates(ctx, s, bookmarkID, currentBookmarkDuplicateJudge())
+}
+
+// detectDuplicates is DetectDuplicatesForBookmark with the judge chosen by the caller. Bulk
+// imports pass nil, so thousands of new bookmarks are compared locally and never sent to the AI.
+func detectDuplicates(ctx context.Context, s *xorm.Session, bookmarkID int64, judge BookmarkDuplicateJudge) error {
 	subject, err := getBookmarkByIDSimple(s, bookmarkID)
 	if err != nil {
 		if IsErrBookmarkDoesNotExist(err) {
@@ -204,7 +210,7 @@ func DetectDuplicatesForBookmark(ctx context.Context, s *xorm.Session, bookmarkI
 	matches := []BookmarkDuplicateMatch{}
 	reason := BookmarkDuplicateReasonSimilar
 	judged := false
-	if judge := currentBookmarkDuplicateJudge(); judge != nil && len(candidates) > 0 {
+	if judge != nil && len(candidates) > 0 {
 		subjectView, candidateViews, err := duplicateCheckViews(s, subject, candidates)
 		if err != nil {
 			return err

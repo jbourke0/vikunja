@@ -167,6 +167,10 @@ func DeleteUser(s *xorm.Session, u *user.User) (err error) {
 		return err
 	}
 
+	if err := deleteUserBookmarks(s, u.ID); err != nil { // Johnny's Brain
+		return err
+	}
+
 	// Delete all related entities
 	relatedEntities := []struct {
 		column string

@@ -194,7 +194,6 @@ const timeTrackingEnabled = computed(() => configStore.isProFeatureEnabled(PRO_F
 
 const {sidebarWidthStyle, isResizing, startResize, isMobile} = useSidebarResize()
 
-const projects = computed(() => projectList.notArchivedRootProjects)
 const favoriteProjects = computed(() => projectList.favoriteProjects)
 const savedFilterProjects = computed(() => projectList.savedFilterProjects)
 
@@ -205,6 +204,12 @@ const inboxProject = computed(() => {
 	const defaultId = authStore.settings.default_project_id
 	return all.find(p => p.id === defaultId) ?? all.find(p => p.title === 'Inbox')
 })
+
+// The Inbox has its own item at the top of the sidebar, so it is left out of the project tree
+// unless it has sub-projects, which would otherwise have no home.
+const projects = computed(() => projectList.notArchivedRootProjects.filter(p =>
+	p.id !== inboxProject.value?.id || projectList.getChildProjects(p.id).length > 0,
+))
 
 function openQuickAdd() {
 	if (isMobile.value) {

@@ -24,8 +24,12 @@ import (
 	"code.vikunja.io/api/pkg/models"
 )
 
-// EnvLinkPreviews switches link previews off when set to "off".
-const EnvLinkPreviews = "JB_LINK_PREVIEWS"
+const (
+	// EnvLinkPreviews switches link previews off when set to "off".
+	EnvLinkPreviews = "JB_LINK_PREVIEWS"
+	// EnvLinkCheck switches the weekly broken-link check off when set to "off".
+	EnvLinkCheck = "JB_LINK_CHECK"
+)
 
 // Init installs the page fetcher unless link previews are switched off.
 func Init() {
@@ -35,4 +39,11 @@ func Init() {
 	}
 	models.SetBookmarkPageFetcher(New())
 	log.Infof("Bookmark link previews: on (set %s=off to disable)", EnvLinkPreviews)
+
+	if strings.EqualFold(strings.TrimSpace(os.Getenv(EnvLinkCheck)), "off") {
+		log.Infof("Bookmark weekly link check: off (%s=off)", EnvLinkCheck)
+		return
+	}
+	models.RegisterBookmarkLinkCheckCron()
+	log.Infof("Bookmark weekly link check: on, Sundays 3am (set %s=off to disable)", EnvLinkCheck)
 }

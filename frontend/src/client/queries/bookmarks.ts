@@ -16,10 +16,12 @@ import {
 	bookmarkTasksDelete,
 	bookmarksCreate,
 	bookmarksDelete,
+	bookmarksImport,
 	bookmarksList,
 	bookmarksMerge,
 	bookmarksRead,
 	bookmarksRefresh,
+	bookmarksSnapshot,
 	bookmarksUpdate,
 } from '@/client/generated'
 import type {
@@ -74,6 +76,7 @@ export type BookmarkFilters = {
 	label_id?: number
 	project_id?: number
 	task_id?: number
+	broken?: boolean
 }
 
 export const bookmarkKeys = {
@@ -83,6 +86,8 @@ export const bookmarkKeys = {
 	detail: (id: number) => [...bookmarkKeys.all, 'detail', id] as const,
 	comments: (id: number) => [...bookmarkKeys.all, 'comments', id] as const,
 	duplicates: (id: number) => [...bookmarkKeys.all, 'duplicates', id] as const,
+	snapshot: (id: number) => [...bookmarkKeys.all, 'snapshot', id] as const,
+	brokenCount: () => [...bookmarkKeys.all, 'broken-count'] as const,
 }
 
 function cleanFilters(filters: BookmarkFilters): BookmarkFilters {
@@ -92,6 +97,7 @@ function cleanFilters(filters: BookmarkFilters): BookmarkFilters {
 		...(filters.label_id ? {label_id: filters.label_id} : {}),
 		...(filters.project_id ? {project_id: filters.project_id} : {}),
 		...(filters.task_id ? {task_id: filters.task_id} : {}),
+		...(filters.broken ? {broken: true} : {}),
 	}
 }
 
@@ -462,11 +468,59 @@ export function refreshBookmarkMutationOptions() {
 	})
 }
 
+export type ImportBatchInput = {
+	items: {url: string, title?: string, added?: string, folders?: string[]}[]
+	status: BookmarkStatus
+	foldersAsLabels: boolean
+}
+
+/** Imports one batch of links. The caller sends a large file in batches of a few hundred. */
+export function importBookmarksMutationOptions() {
+	return contextMutationOptions({
+		mutationFn: async ({items, status, foldersAsLabels}: ImportBatchInput) =>
+			(await bookmarksImport({body: {items, status, folders_as_labels: foldersAsLabels}})).data,
+		onSettled: (_input, client) => Promise.all([
+			client.invalidateQueries({queryKey: bookmarkKeys.lists()}),
+			client.invalidateQueries({queryKey: bookmarkKeys.brokenCount()}),
+		]),
+	})
+}
+
+export function useImportBookmarksMutation() {
+	return useMutation(importBookmarksMutationOptions())
+}
+
 export function useRefreshBookmarkMutation() {
 	return useMutation(refreshBookmarkMutationOptions())
 }
 
-/** A page that is gone, as opposed to one that blocks bots or needs a login. */
-export function isPageGone(linkStatus: number): boolean {
-	return linkStatus === 404 || linkStatus === 410
+export type PageProblem = 'gone' | 'unreachable' | 'error'
+
+/**
+ * What is wrong with a bookmark's page, going by its last check, or null when nothing is. A page
+ * that blocks bots or wants a login (401, 403, 429) is not a problem, and nor is an address on a
+ * private network, which is never checked. Matches the server's notion of a broken link.
+ */
+export function pageProblem(linkStatus: number): PageProblem | null {
+	if (linkStatus === 404 || linkStatus === 410) return 'gone'
+	if (linkStatus === -1) return 'unreachable'
+	if (linkStatus >= 500) return 'error'
+	return null
+}
+
+/** The saved readable text of a bookmark's page. Only asked for once someone opens it. */
+export function bookmarkSnapshotQuery(bookmarkId: number, enabled: boolean) {
+	return queryOptions({
+		queryKey: bookmarkKeys.snapshot(bookmarkId),
+		queryFn: async () => (await bookmarksSnapshot({path: {bookmark: bookmarkId}})).data,
+		enabled,
+	})
+}
+
+/** How many bookmarks have a broken link, for the badge on the Broken links tab. */
+export function brokenCountQuery() {
+	return queryOptions({
+		queryKey: bookmarkKeys.brokenCount(),
+		queryFn: async () => (await bookmarksList({query: {broken: true, per_page: 1}})).data.total ?? 0,
+	})
 }

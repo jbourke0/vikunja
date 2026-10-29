@@ -200,7 +200,7 @@
         "taskAndNotifications": "Projects & Tasks",
         "privacy": "Privacy",
         "localization": "Localization",
-        "appearance": "Appearance & Behavior",
+        "appearance": "Appearance & Behaviour",
         "desktop": "Desktop App"
       },
       "desktop": {
@@ -211,7 +211,7 @@
       },
       "totp": {
         "title": "Two Factor Authentication",
-        "enroll": "Enroll",
+        "enroll": "Enrol",
         "finishSetupPart1": "To finish your setup, use this secret in your TOTP app (Google Authenticator or similar):",
         "finishSetupPart2": "After that, enter a code from your app below.",
         "scanQR": "Alternatively you can scan this QR code:",
@@ -255,7 +255,7 @@
         "uploadAvatar": "Upload Avatar",
         "statusUpdateSuccess": "Avatar status was updated successfully!",
         "setSuccess": "The avatar has been set successfully!",
-        "ldap": "Your avatar is automagically synced from your organization's directory service (LDAP). You can ask your IT team for information on how to change it.",
+        "ldap": "Your avatar is automagically synced from your organisation's directory service (LDAP). You can ask your IT team for information on how to change it.",
         "openid": "Your avatar is automagically synced from your login provider ({provider}). To change it, please update it there instead."
       },
       "quickAddMagic": {
@@ -265,7 +265,7 @@
         "vikunja": "Vikunja"
       },
       "appearance": {
-        "title": "Color Scheme",
+        "title": "Colour Scheme",
         "colorScheme": {
           "light": "Light",
           "system": "System",
@@ -309,7 +309,7 @@
         },
         "attributes": {
           "title": "Title",
-          "titlePlaceholder": "Enter a title you will recognize later",
+          "titlePlaceholder": "Enter a title you will recognise later",
           "expiresAt": "Expires at",
           "permissions": "Permissions"
         }
@@ -355,7 +355,7 @@
             "url": "Name the connector Johnny's Brain and enter this URL: {value}",
             "auth": "Set Authentication to No sign-in.",
             "header": "Under Request headers, choose authorization and paste this full value, including Bearer and the space, then add the connector: {value}",
-            "beta": "Request headers are in beta for a limited set of organizations. If this section is missing, connecting Johnny's Brain is not available for your account yet."
+            "beta": "Request headers are in beta for a limited set of organisations. If this section is missing, connecting Johnny's Brain is not available for your account yet."
           },
           "mistral": {
             "open": "In the sidebar on the left open Context → Connectors → Add Connector → Add Custom Connector.",
@@ -405,7 +405,7 @@
     "archived": "Archived",
     "showArchived": "Show Archived",
     "title": "Title",
-    "color": "Color",
+    "color": "Colour",
     "projects": "Projects",
     "parent": "Parent Project",
     "search": "Type to search for a project…",
@@ -414,11 +414,11 @@
     "noDescriptionAvailable": "No project description is available.",
     "inboxTitle": "Inbox",
     "myOpenTasksFilterTitle": "My Open Tasks",
-    "favorite": "Mark this project as favorite",
-    "unfavorite": "Remove this project from favorites",
+    "favorite": "Mark this project as favourite",
+    "unfavorite": "Remove this project from favourites",
     "openSettingsMenu": "Open project settings menu",
     "description": "Project description",
-    "favoriteDescription": "This project has all tasks marked as favorites.",
+    "favoriteDescription": "This project has all tasks marked as favourites.",
     "create": {
       "header": "New project",
       "titlePlaceholder": "The project's title goes here…",
@@ -475,7 +475,7 @@
       "identifierPlaceholder": "The project identifier goes here…",
       "description": "Description",
       "descriptionPlaceholder": "Enter a description for this project, hit '/' for more options…",
-      "color": "Color",
+      "color": "Colour",
       "success": "The project was successfully updated."
     },
     "share": {
@@ -613,7 +613,7 @@
     },
     "pseudo": {
       "favorites": {
-        "title": "Favorites"
+        "title": "Favourites"
       }
     },
     "webhooks": {
@@ -764,7 +764,7 @@
     "titleService": "Import your data from {name} into Johnny's Brain",
     "description": "Click on the logo of one of the third-party services below to get started.",
     "descriptionDo": "Johnny's Brain will import all lists, tasks, notes, reminders and files you have access to.",
-    "authorize": "To authorize Johnny's Brain to access your {name} Account, click the button below.",
+    "authorize": "To authorise Johnny's Brain to access your {name} Account, click the button below.",
     "getStarted": "Get Started",
     "inProgress": "Importing in progress…",
     "alreadyMigrated1": "It looks like you've already imported your stuff from {name} at {date}.",
@@ -840,7 +840,7 @@
       "title": "Title",
       "titlePlaceholder": "The label title goes here…",
       "description": "Description",
-      "color": "Color"
+      "color": "Colour"
     }
   },
   "sharing": {
@@ -914,8 +914,8 @@
     "user": "User"
   },
   "input": {
-    "projectColor": "Project color",
-    "resetColor": "Reset Color",
+    "projectColor": "Project colour",
+    "resetColor": "Reset Colour",
     "datepicker": {
       "today": "Today",
       "tomorrow": "Tomorrow",
@@ -1138,7 +1138,7 @@
       "title": "Task detail",
       "markAsDone": "Mark '{task}' as done",
       "scrollToBottom": "Scroll to bottom",
-      "organization": "Organization",
+      "organization": "Organisation",
       "management": "Management",
       "dateAndTime": "Date and time",
       "delete": {
@@ -1161,15 +1161,15 @@
         "relatedTasks": "Add Relation",
         "moveProject": "Move",
         "duplicate": "Duplicate",
-        "color": "Set Color",
+        "color": "Set Colour",
         "delete": "Delete",
-        "favorite": "Add to Favorites",
-        "unfavorite": "Remove from Favorites"
+        "favorite": "Add to Favourites",
+        "unfavorite": "Remove from Favourites"
       }
     },
     "attributes": {
       "assignees": "Assignees",
-      "color": "Color",
+      "color": "Colour",
       "created": "Created",
       "createdBy": "Created By",
       "description": "Description",
@@ -1433,13 +1433,13 @@
       "dueDate": "Change the due date of this task",
       "attachment": "Add an attachment to this task",
       "related": "Modify related tasks of this task",
-      "color": "Change the color of this task",
+      "color": "Change the colour of this task",
       "move": "Move this task to another project",
       "reminder": "Manage reminders of this task",
       "description": "Toggle editing of the task description",
       "delete": "Delete this task",
       "priority": "Change the priority of this task",
-      "favorite": "Mark this task as favorite / unfavorite",
+      "favorite": "Mark this task as favourite / unfavourite",
       "openProject": "Open the project of this task",
       "save": "Save the current task",
       "copyIdentifier": "Copy task identifier to clipboard",
@@ -1854,7 +1854,9 @@
       "delete": "Delete bookmark",
       "confirmDelete": "Delete this bookmark, its comments and its labels? This can't be undone.",
       "alreadySaved": "You'd already saved that link, so here it is.",
-      "merged": "Bookmarks merged."
+      "merged": "Bookmarks merged.",
+      "broken": "Broken links",
+      "importLink": "Import"
     },
     "sources": {
       "title": "Sources",
@@ -1890,7 +1892,16 @@
       "private": "This address is on a private network, so no preview is fetched.",
       "textSaved": "Its text is saved for search.",
       "copyKept": "Your saved copy of its text is kept.",
-      "gone": "Page not found"
+      "problem": {
+        "gone": "Page not found",
+        "unreachable": "Couldn't be reached",
+        "error": "Server error"
+      },
+      "savedText": "Saved page text",
+      "savedTextShow": "View saved text",
+      "savedTextHide": "Hide saved text",
+      "savedTextWhen": "Saved {when}",
+      "savedTextLoading": "Loading…"
     },
     "share": {
       "setupLink": "Save from other apps",
@@ -1934,7 +1945,7 @@
       "iphoneStep2": "Open the Shortcuts app, tap +, and name the shortcut Save to Johnny's Brain.",
       "iphoneStep3": "Tap the info button, turn on Show in Share Sheet, and set Share Sheet Types to URLs only.",
       "iphoneStep4": "Add the action Get Contents of URL and set its URL to:",
-      "iphoneStep5": "Tap Show More. Set Method to POST. Add a header named Authorization with the copied value. Set Request Body to JSON and add a Text field named url with the value Shortcut Input.",
+      "iphoneStep5": "Tap Show More. Set Method to POST. Add a header named Authorisation with the copied value. Set Request Body to JSON and add a Text field named url with the value Shortcut Input.",
       "iphoneStep6": "Add the action Show Notification with the text Saved to Johnny's Brain. Now share any link from Safari and tap Save to Johnny's Brain.",
       "iphoneNote": "Saving a link you already have doesn't make a copy.",
       "desktopHeading": "Desktop browsers: bookmarklet",
@@ -1944,6 +1955,42 @@
       "desktopNote": "It opens a small window with the page's address and title filled in, and closes itself after saving.",
       "copy": "Copy",
       "copied": "Copied"
+    },
+    "import": {
+      "title": "Import bookmarks",
+      "intro": "Bring in the bookmarks you've already saved in your browser. Export them to a file first, then choose that file here.",
+      "howTitle": "How to export",
+      "howChrome": "Chrome, Edge and Brave: open Bookmark manager, then the three dots, then Export bookmarks.",
+      "howFirefox": "Firefox: Bookmarks, Manage bookmarks, then Import and Backup, then Export Bookmarks to HTML.",
+      "howSafari": "Safari: File, then Export, then Bookmarks.",
+      "choose": "Choose a bookmarks file",
+      "reading": "Reading file…",
+      "tooBig": "That file is too large to be a bookmarks export.",
+      "readError": "That file couldn't be read as a bookmarks export.",
+      "none": "No web links were found in that file.",
+      "found": "Found {count} links in {folders} folders.",
+      "foundSkipped": "{count} links aren't web addresses and will be skipped.",
+      "statusLabel": "Reading status for imported links",
+      "foldersAsLabels": "Use folder names as labels",
+      "foldersAsLabelsHelp": "Links in a folder called Recipes get the label Recipes. Labels you already have are reused, and your browser's own folders such as Bookmarks bar are ignored.",
+      "start": "Import {count} links",
+      "progress": "Imported {done} of {total}…",
+      "resume": "Resume",
+      "failed": "The import stopped part of the way. Nothing is lost: what was saved stays, and Resume carries on from there.",
+      "doneHeading": "Import finished",
+      "doneSaved": "{count} saved",
+      "doneDuplicates": "{count} already saved, or repeated in the file",
+      "doneInvalid": "{count} skipped because they weren't web addresses",
+      "doneLabels": "{count} labels created",
+      "doneBackground": "Titles, icons and page text are fetched in the background, so they fill in over the next few minutes. Possible duplicates are found at the same time.",
+      "viewBookmarks": "View bookmarks",
+      "importAnother": "Import another file"
+    },
+    "days": {
+      "overdue": "Overdue",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "noDate": "No date"
     }
   }
 }

@@ -388,6 +388,67 @@ export type BookmarkDuplicateSuggestion = {
     score?: number;
 };
 
+export type BookmarkImport = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Label each link with the name of the folder it sat in, reusing your labels of that name and creating the rest. Generic folders such as 'Bookmarks bar' are ignored.
+     */
+    folders_as_labels?: boolean;
+    /**
+     * The links to import, at most 500 per request.
+     */
+    items?: Array<BookmarkImportItem> | null;
+    /**
+     * Reading status for every imported link. Defaults to to_read.
+     */
+    status?: 'to_read' | 'reference' | 'archived';
+};
+
+export type BookmarkImportItem = {
+    /**
+     * When the link was first bookmarked. Used as the saved date unless it is in the future or before 1995.
+     */
+    added?: string;
+    /**
+     * The folders the bookmark sat in, outermost first.
+     */
+    folders?: Array<string> | null;
+    /**
+     * The title the browser had. Left empty, the page's own title is fetched later.
+     */
+    title?: string;
+    /**
+     * The address. Items that are not absolute http or https URLs are counted as invalid and skipped.
+     */
+    url?: string;
+};
+
+export type BookmarkImportResult = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * New bookmarks saved.
+     */
+    created?: number;
+    /**
+     * Links skipped because you already had them, or they appeared twice in the batch.
+     */
+    duplicates?: number;
+    /**
+     * Items skipped because they were not http or https addresses.
+     */
+    invalid?: number;
+    /**
+     * Labels created from folder names.
+     */
+    labels_created?: number;
+};
+
 export type BookmarkLinkedProject = {
     /**
      * The project colour in hex, without #.
@@ -529,6 +590,21 @@ export type BookmarkReadBody = {
      * The address of the saved page. Must be an absolute http or https URL.
      */
     url?: string;
+};
+
+export type BookmarkSnapshot = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * When the text was saved.
+     */
+    fetched_at?: string;
+    /**
+     * The readable text of the page when it was last fetched.
+     */
+    text?: string;
 };
 
 export type BookmarkTask = {
@@ -4061,6 +4137,40 @@ export type BookmarkDuplicateSuggestionWritable = {
     score?: number;
 };
 
+export type BookmarkImportWritable = {
+    /**
+     * Label each link with the name of the folder it sat in, reusing your labels of that name and creating the rest. Generic folders such as 'Bookmarks bar' are ignored.
+     */
+    folders_as_labels?: boolean;
+    /**
+     * The links to import, at most 500 per request.
+     */
+    items?: Array<BookmarkImportItem> | null;
+    /**
+     * Reading status for every imported link. Defaults to to_read.
+     */
+    status?: 'to_read' | 'reference' | 'archived';
+};
+
+export type BookmarkImportResultWritable = {
+    /**
+     * New bookmarks saved.
+     */
+    created?: number;
+    /**
+     * Links skipped because you already had them, or they appeared twice in the batch.
+     */
+    duplicates?: number;
+    /**
+     * Items skipped because they were not http or https addresses.
+     */
+    invalid?: number;
+    /**
+     * Labels created from folder names.
+     */
+    labels_created?: number;
+};
+
 export type BookmarkMergeInputWritable = {
     /**
      * The bookmark to fold into this one. It is deleted after the merge.
@@ -4104,6 +4214,17 @@ export type BookmarkReadBodyWritable = {
      * The address of the saved page. Must be an absolute http or https URL.
      */
     url?: string;
+};
+
+export type BookmarkSnapshotWritable = {
+    /**
+     * When the text was saved.
+     */
+    fetched_at?: string;
+    /**
+     * The readable text of the page when it was last fetched.
+     */
+    text?: string;
 };
 
 export type BookmarkTaskWritable = {
@@ -6278,6 +6399,10 @@ export type BookmarksListData = {
          */
         task_id?: number;
         /**
+         * Only bookmarks whose last link check found the page gone or failing: not found, gone, a server error or no response.
+         */
+        broken?: boolean;
+        /**
          * Only the bookmark saved for this link, compared after normalising (tracking parameters, www and trailing slashes are ignored). Use it to ask whether a link is already saved.
          */
         url?: string;
@@ -6327,6 +6452,31 @@ export type BookmarksCreateResponses = {
 };
 
 export type BookmarksCreateResponse = BookmarksCreateResponses[keyof BookmarksCreateResponses];
+
+export type BookmarksImportData = {
+    body: BookmarkImportWritable;
+    path?: never;
+    query?: never;
+    url: '/bookmarks/import';
+};
+
+export type BookmarksImportErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarksImportError = BookmarksImportErrors[keyof BookmarksImportErrors];
+
+export type BookmarksImportResponses = {
+    /**
+     * OK
+     */
+    200: BookmarkImportResult;
+};
+
+export type BookmarksImportResponse = BookmarksImportResponses[keyof BookmarksImportResponses];
 
 export type BookmarkCommentsListData = {
     body?: never;
@@ -6760,6 +6910,33 @@ export type BookmarksRefreshResponses = {
      */
     202: unknown;
 };
+
+export type BookmarksSnapshotData = {
+    body?: never;
+    path: {
+        bookmark: number;
+    };
+    query?: never;
+    url: '/bookmarks/{bookmark}/snapshot';
+};
+
+export type BookmarksSnapshotErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarksSnapshotError = BookmarksSnapshotErrors[keyof BookmarksSnapshotErrors];
+
+export type BookmarksSnapshotResponses = {
+    /**
+     * OK
+     */
+    200: BookmarkSnapshot;
+};
+
+export type BookmarksSnapshotResponse = BookmarksSnapshotResponses[keyof BookmarksSnapshotResponses];
 
 export type BookmarkTasksCreateData = {
     body: BookmarkTaskWritable;

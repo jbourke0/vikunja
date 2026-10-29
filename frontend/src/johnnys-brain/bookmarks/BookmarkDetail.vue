@@ -87,6 +87,38 @@
 				</XButton>
 			</div>
 
+			<div
+				v-if="bookmark.has_snapshot"
+				class="jb-bookmark__saved"
+			>
+				<button
+					type="button"
+					class="jb-bookmark__saved-toggle"
+					:aria-expanded="showSaved"
+					@click="showSaved = !showSaved"
+				>
+					<Icon :icon="showSaved ? 'chevron-up' : 'chevron-down'" />
+					{{ showSaved ? $t('johnnysBrain.page.savedTextHide') : $t('johnnysBrain.page.savedTextShow') }}
+				</button>
+				<div
+					v-if="showSaved"
+					class="jb-bookmark__saved-body"
+				>
+					<p
+						v-if="snapshotQueryResult.isPending.value"
+						class="jb-muted"
+					>
+						{{ $t('johnnysBrain.page.savedTextLoading') }}
+					</p>
+					<template v-else-if="snapshot">
+						<p class="jb-muted">
+							{{ $t('johnnysBrain.page.savedTextWhen', {when: formatDisplayDate(snapshot.fetched_at)}) }}
+						</p>
+						<pre class="jb-bookmark__saved-text">{{ snapshot.text }}</pre>
+					</template>
+				</div>
+			</div>
+
 			<section
 				v-if="duplicates.length"
 				class="jb-bookmark__section jb-duplicates"
@@ -422,6 +454,7 @@ import {
 	bookmarkCommentsQuery,
 	bookmarkDuplicatesQuery,
 	bookmarkQuery,
+	bookmarkSnapshotQuery,
 	hostOf,
 	useAddBookmarkLabelMutation,
 	useCreateBookmarkCommentMutation,
@@ -487,6 +520,15 @@ async function refreshFromPage() {
 		refreshing.value = false // the mutation has already shown why
 	}
 }
+
+// Saved page text, fetched only once it is opened
+const showSaved = ref(false)
+const snapshotQueryResult = useQuery(computed(() => bookmarkSnapshotQuery(props.bookmarkId, showSaved.value && (bookmark.value?.has_snapshot ?? false))))
+const snapshot = computed(() => snapshotQueryResult.data.value)
+watch(() => bookmark.value?.checked_at, () => {
+	// A refresh may have saved newer text.
+	if (showSaved.value) void snapshotQueryResult.refetch()
+})
 
 const pageProblem = computed(() => {
 	const status = bookmark.value?.link_status ?? 0
@@ -1036,5 +1078,43 @@ async function remove() {
 
 .jb-bookmark__page-text {
 	flex: 1 1 14rem;
+}
+.jb-bookmark__saved {
+	margin-block: -.5rem 1.25rem;
+}
+
+.jb-bookmark__saved-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: .4rem;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--jb-green);
+	font: inherit;
+	font-size: .85rem;
+	font-weight: 500;
+	cursor: pointer;
+}
+
+.jb-bookmark__saved-body {
+	margin-block-start: .6rem;
+	padding: .9rem 1rem;
+	border-radius: 14px;
+	background: var(--grey-100);
+}
+
+.jb-bookmark__saved-text {
+	margin: .4rem 0 0;
+	max-block-size: 24rem;
+	overflow: auto;
+	padding: 0;
+	background: transparent;
+	color: var(--text);
+	font: inherit;
+	font-size: .9rem;
+	line-height: 1.5;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
 }
 </style>

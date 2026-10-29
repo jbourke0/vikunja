@@ -101,7 +101,7 @@ describe('TOTP settings', () => {
 
 		const w = await mountAndSettle()
 
-		expect(w.text()).toContain('Enroll')
+		expect(w.text()).toContain('Enrol')
 		expect(qrcode).not.toHaveBeenCalled()
 		expect(errors).toEqual([])
 	})
@@ -114,10 +114,10 @@ describe('TOTP settings', () => {
 
 		const w = await mountAndSettle()
 
-		expect(w.text()).not.toContain('Enroll')
+		expect(w.text()).not.toContain('Enrol')
 		settleStatus({code: 1016})
 		await flushPromises()
-		expect(w.text()).toContain('Enroll')
+		expect(w.text()).toContain('Enrol')
 	})
 
 	it('keeps the enrollment secret out of the mutation cache once enrolled', async () => {
@@ -131,7 +131,7 @@ describe('TOTP settings', () => {
 		get.mockResolvedValueOnce({data: enrolled})
 
 		const w = await mountAndSettle()
-		await w.findAll('button').find(b => b.text() === 'Enroll')!.trigger('click')
+		await w.findAll('button').find(b => b.text() === 'Enrol')!.trigger('click')
 		await flushPromises()
 
 		expect(enroll).toHaveBeenCalledTimes(1)
@@ -156,7 +156,7 @@ describe('TOTP settings', () => {
 		const w = await mountAndSettle()
 
 		expect(w.text()).toContain("You've successfully set up two factor authentication!")
-		expect(w.text()).not.toContain('Enroll')
+		expect(w.text()).not.toContain('Enrol')
 		expect(w.text()).not.toContain('scan')
 		expect(w.find('img').exists()).toBe(false)
 		expect(qrcode).not.toHaveBeenCalled()

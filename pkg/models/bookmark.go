@@ -93,6 +93,7 @@ type Bookmark struct {
 	FilterProjectID int64  `xorm:"-" json:"-"`
 	FilterTaskID    int64  `xorm:"-" json:"-"`
 	FilterURL       string `xorm:"-" json:"-"`
+	FilterBroken    bool   `xorm:"-" json:"-"`
 
 	web.CRUDable    `xorm:"-" json:"-"`
 	web.Permissions `xorm:"-" json:"-"`
@@ -293,6 +294,9 @@ func (b *Bookmark) ReadAll(s *xorm.Session, a web.Auth, search string, page int,
 		conds = append(conds, builder.In("bookmarks.id",
 			builder.Select("bookmark_id").From("bookmark_projects").Where(builder.Eq{"project_id": b.FilterProjectID})))
 	}
+	if b.FilterBroken {
+		conds = append(conds, brokenLinkCond())
+	}
 	if b.FilterURL != "" {
 		conds = append(conds, builder.Eq{"bookmarks.url_hash": BookmarkURLHash(b.FilterURL)})
 	}
@@ -410,8 +414,8 @@ func addBookmarkDetails(s *xorm.Session, bookmarks []*Bookmark) error {
 type BookmarkSnapshot struct {
 	ID         int64     `xorm:"bigint autoincr not null unique pk" json:"-"`
 	BookmarkID int64     `xorm:"bigint not null unique" json:"-"`
-	Text       string    `xorm:"longtext null" json:"text"`
-	FetchedAt  time.Time `xorm:"datetime not null" json:"fetched_at"`
+	Text       string    `xorm:"longtext null" json:"text" doc:"The readable text of the page when it was last fetched."`
+	FetchedAt  time.Time `xorm:"datetime not null" json:"fetched_at" doc:"When the text was saved."`
 }
 
 // TableName returns the table name for bookmark snapshots.

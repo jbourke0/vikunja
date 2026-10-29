@@ -428,7 +428,13 @@ const router = createRouter({
 				status: ['to_read', 'reference', 'archived'].includes(route.query.status as string)
 					? route.query.status as string
 					: undefined,
+				broken: route.query.broken === 'true',
 			}),
+		},
+		{
+			path: '/bookmarks/import',
+			name: 'bookmarks.import',
+			component: () => import('@/johnnys-brain/bookmarks/ImportBookmarks.vue'),
 		},
 		{
 			// Also the PWA share target (see vite.config.ts) and the bookmarklet's destination.

@@ -19,8 +19,10 @@ package webtests
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -443,4 +445,74 @@ func TestHumaBookmarkSnapshotSearch(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, rec.Body.String(), `"has_snapshot":true`)
 	assert.Contains(t, rec.Body.String(), `"link_status":0`)
+}
+
+func TestHumaBookmarkImport(t *testing.T) {
+	e, err := setupTestEnv()
+	require.NoError(t, err)
+	token := humaTokenFor(t, &testuser1)
+
+	body := `{"status":"reference","folders_as_labels":true,"items":[
+		{"url":"https://www.example.net/a","title":"Page A","added":"2019-03-04T09:30:00Z","folders":["Bookmarks bar","Work"]},
+		{"url":"javascript:alert(1)"},
+		{"url":"http://example.com/one/"},
+		{"url":"https://example.net/b"}]}`
+	rec := humaRequest(t, e, http.MethodPost, "/api/v2/bookmarks/import", body, token, "")
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.Contains(t, rec.Body.String(), `"created":2`)
+	assert.Contains(t, rec.Body.String(), `"duplicates":1`)
+	assert.Contains(t, rec.Body.String(), `"invalid":1`)
+	assert.Contains(t, rec.Body.String(), `"labels_created":1`)
+
+	rec = humaRequest(t, e, http.MethodGet, "/api/v2/bookmarks?url="+url.QueryEscape("https://example.net/a"), "", token, "")
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.Contains(t, rec.Body.String(), `"title":"Page A"`)
+	assert.Contains(t, rec.Body.String(), `"status":"reference"`)
+	assert.Contains(t, rec.Body.String(), `"created":"2019-03-04T09:30:00Z"`, "the date from the file is kept")
+	assert.Contains(t, rec.Body.String(), `"labels":[{"id":`)
+
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/bookmarks/import", `{"items":[{"url":"https://example.net/c"}]}`, "", "")
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/bookmarks/import", `{"status":"someday","items":[{"url":"https://example.net/c"}]}`, token, "")
+	assert.Equal(t, http.StatusUnprocessableEntity, rec.Code, "an unknown status is rejected")
+
+	items := make([]string, 501)
+	for i := range items {
+		items[i] = fmt.Sprintf(`{"url":"https://example.net/many/%d"}`, i)
+	}
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/bookmarks/import", `{"items":[`+strings.Join(items, ",")+`]}`, token, "")
+	assert.Equal(t, http.StatusUnprocessableEntity, rec.Code, "more than 500 links in one request is rejected")
+}
+
+func TestHumaBookmarkSnapshotAndBroken(t *testing.T) {
+	e, err := setupTestEnv()
+	require.NoError(t, err)
+	token := humaTokenFor(t, &testuser1)
+
+	rec := humaRequest(t, e, http.MethodGet, "/api/v2/bookmarks/1/snapshot", "", token, "")
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.Contains(t, rec.Body.String(), `"text":"Photographs from the grading day"`)
+	assert.Contains(t, rec.Body.String(), `"fetched_at"`)
+
+	rec = humaRequest(t, e, http.MethodGet, "/api/v2/bookmarks/3/snapshot", "", token, "")
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.Contains(t, rec.Body.String(), "90015")
+	rec = humaRequest(t, e, http.MethodGet, "/api/v2/bookmarks/2/snapshot", "", token, "")
+	assert.Equal(t, http.StatusForbidden, rec.Code, "user 2's private bookmark")
+	rec = humaRequest(t, e, http.MethodGet, "/api/v2/bookmarks/1/snapshot", "", "", "")
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+
+	s := db.NewSession()
+	_, err = s.Exec("UPDATE bookmarks SET link_status = 404 WHERE id = 1")
+	require.NoError(t, err)
+	_, err = s.Exec("UPDATE bookmarks SET link_status = 403 WHERE id = 3")
+	require.NoError(t, err)
+	require.NoError(t, s.Commit())
+	s.Close()
+
+	rec = humaRequest(t, e, http.MethodGet, "/api/v2/bookmarks?broken=true", "", token, "")
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, []int64{1}, labelIDsFromReadAll(t, rec.Body.Bytes()), "only the 404; a 403 is not a broken link")
+	assert.EqualValues(t, 1, totalFromReadAll(t, rec.Body.Bytes()))
 }

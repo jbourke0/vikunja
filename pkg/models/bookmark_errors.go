@@ -376,3 +376,57 @@ func (err ErrBookmarkPreviewsDisabled) HTTPError() web.HTTPError {
 		Message:  "Link previews are switched off on this server.",
 	}
 }
+
+// ErrBookmarkImportTooLarge represents an error where an import batch has too many links.
+type ErrBookmarkImportTooLarge struct {
+	Max int
+}
+
+// IsErrBookmarkImportTooLarge checks if an error is ErrBookmarkImportTooLarge.
+func IsErrBookmarkImportTooLarge(err error) bool {
+	var target ErrBookmarkImportTooLarge
+	return errors.As(err, &target)
+}
+
+func (err ErrBookmarkImportTooLarge) Error() string {
+	return fmt.Sprintf("Bookmark import is too large [Max: %v]", err.Max)
+}
+
+// ErrCodeBookmarkImportTooLarge holds the unique world-error code of this error
+const ErrCodeBookmarkImportTooLarge = 90014
+
+// HTTPError holds the http error description
+func (err ErrBookmarkImportTooLarge) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusBadRequest,
+		Code:     ErrCodeBookmarkImportTooLarge,
+		Message:  fmt.Sprintf("Send at most %d links per import request.", err.Max),
+	}
+}
+
+// ErrBookmarkSnapshotDoesNotExist represents an error where a bookmark has no saved page text.
+type ErrBookmarkSnapshotDoesNotExist struct {
+	BookmarkID int64
+}
+
+// IsErrBookmarkSnapshotDoesNotExist checks if an error is ErrBookmarkSnapshotDoesNotExist.
+func IsErrBookmarkSnapshotDoesNotExist(err error) bool {
+	var target ErrBookmarkSnapshotDoesNotExist
+	return errors.As(err, &target)
+}
+
+func (err ErrBookmarkSnapshotDoesNotExist) Error() string {
+	return fmt.Sprintf("Bookmark snapshot does not exist [BookmarkID: %v]", err.BookmarkID)
+}
+
+// ErrCodeBookmarkSnapshotDoesNotExist holds the unique world-error code of this error
+const ErrCodeBookmarkSnapshotDoesNotExist = 90015
+
+// HTTPError holds the http error description
+func (err ErrBookmarkSnapshotDoesNotExist) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusNotFound,
+		Code:     ErrCodeBookmarkSnapshotDoesNotExist,
+		Message:  "No page text is saved for this bookmark.",
+	}
+}

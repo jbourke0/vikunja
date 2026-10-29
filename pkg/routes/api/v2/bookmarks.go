@@ -92,6 +92,7 @@ func bookmarksList(ctx context.Context, in *struct {
 	LabelID   int64  `query:"label_id" minimum:"1" doc:"Only bookmarks with this label."`
 	ProjectID int64  `query:"project_id" minimum:"1" doc:"Only bookmarks linked as a source to this project."`
 	TaskID    int64  `query:"task_id" minimum:"1" doc:"Only bookmarks linked as a source to this task."`
+	Broken    bool   `query:"broken" doc:"Only bookmarks whose last link check found the page gone or failing: not found, gone, a server error or no response."`
 	URL       string `query:"url" doc:"Only the bookmark saved for this link, compared after normalising (tracking parameters, www and trailing slashes are ignored). Use it to ask whether a link is already saved."`
 }) (*bookmarkListBody, error) {
 	a, err := authFromCtx(ctx)
@@ -104,6 +105,7 @@ func bookmarksList(ctx context.Context, in *struct {
 		FilterProjectID: in.ProjectID,
 		FilterTaskID:    in.TaskID,
 		FilterURL:       in.URL,
+		FilterBroken:    in.Broken,
 	}
 	result, _, total, err := handler.DoReadAll(ctx, filter, a, in.Q, in.Page, in.PerPage)
 	if err != nil {
