@@ -351,3 +351,28 @@ func (err ErrBookmarkMergeIntoItself) HTTPError() web.HTTPError {
 		Message:  "A bookmark cannot be merged into itself.",
 	}
 }
+
+// ErrBookmarkPreviewsDisabled represents an error where link previews are switched off on this server.
+type ErrBookmarkPreviewsDisabled struct{}
+
+// IsErrBookmarkPreviewsDisabled checks if an error is ErrBookmarkPreviewsDisabled.
+func IsErrBookmarkPreviewsDisabled(err error) bool {
+	var target ErrBookmarkPreviewsDisabled
+	return errors.As(err, &target)
+}
+
+func (err ErrBookmarkPreviewsDisabled) Error() string {
+	return "Bookmark link previews are switched off"
+}
+
+// ErrCodeBookmarkPreviewsDisabled holds the unique world-error code of this error
+const ErrCodeBookmarkPreviewsDisabled = 90013
+
+// HTTPError holds the http error description
+func (err ErrBookmarkPreviewsDisabled) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusConflict,
+		Code:     ErrCodeBookmarkPreviewsDisabled,
+		Message:  "Link previews are switched off on this server.",
+	}
+}

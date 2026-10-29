@@ -1,0 +1,9 @@
+# Saved page text. Bookmark 1 is user 1's; bookmark 2 is user 2's private one (invisible to user 1).
+- id: 1
+  bookmark_id: 1
+  text: 'Photographs from the grading day'
+  fetched_at: 2018-12-02 15:13:12
+- id: 2
+  bookmark_id: 2
+  text: 'Private photographs of user two'
+  fetched_at: 2018-12-02 15:13:12

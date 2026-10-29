@@ -258,6 +258,10 @@ export type Bookmark = {
      */
     favicon_url?: string;
     /**
+     * Whether the readable text of the page is saved. It is searched by the q filter and kept if the page later disappears.
+     */
+    readonly has_snapshot?: boolean;
+    /**
      * The unique, numeric id of this bookmark.
      */
     readonly id?: number;
@@ -270,7 +274,7 @@ export type Bookmark = {
      */
     readonly labels?: Array<Label> | null;
     /**
-     * HTTP status code from the last link check, 0 if the link has not been checked. Set by the server.
+     * HTTP status code from the last link check; 0 if never checked, -1 if the page could not be reached, -2 if it is on a private network and was not fetched. Set by the server.
      */
     readonly link_status?: number;
     /**
@@ -474,6 +478,10 @@ export type BookmarkReadBody = {
      */
     favicon_url?: string;
     /**
+     * Whether the readable text of the page is saved. It is searched by the q filter and kept if the page later disappears.
+     */
+    readonly has_snapshot?: boolean;
+    /**
      * The unique, numeric id of this bookmark.
      */
     readonly id?: number;
@@ -486,7 +494,7 @@ export type BookmarkReadBody = {
      */
     readonly labels?: Array<Label> | null;
     /**
-     * HTTP status code from the last link check, 0 if the link has not been checked. Set by the server.
+     * HTTP status code from the last link check; 0 if never checked, -1 if the page could not be reached, -2 if it is on a private network and was not fetched. Set by the server.
      */
     readonly link_status?: number;
     /**
@@ -6727,6 +6735,31 @@ export type BookmarkProjectsDeleteResponses = {
 };
 
 export type BookmarkProjectsDeleteResponse = BookmarkProjectsDeleteResponses[keyof BookmarkProjectsDeleteResponses];
+
+export type BookmarksRefreshData = {
+    body?: never;
+    path: {
+        bookmark: number;
+    };
+    query?: never;
+    url: '/bookmarks/{bookmark}/refresh';
+};
+
+export type BookmarksRefreshErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarksRefreshError = BookmarksRefreshErrors[keyof BookmarksRefreshErrors];
+
+export type BookmarksRefreshResponses = {
+    /**
+     * Accepted
+     */
+    202: unknown;
+};
 
 export type BookmarkTasksCreateData = {
     body: BookmarkTaskWritable;

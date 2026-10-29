@@ -22,6 +22,7 @@
 					<img
 						v-if="bookmark.favicon_url && !iconBroken"
 						:src="bookmark.favicon_url"
+						referrerpolicy="no-referrer"
 						alt=""
 						width="28"
 						height="28"
@@ -63,10 +64,28 @@
 			<img
 				v-if="bookmark.image_url"
 				:src="bookmark.image_url"
+				referrerpolicy="no-referrer"
 				alt=""
 				class="jb-bookmark__image"
 				loading="lazy"
 			>
+
+			<div
+				class="jb-bookmark__page"
+				:class="{'is-problem': pageProblem}"
+			>
+				<Icon :icon="pageProblem ? 'triangle-exclamation' : 'circle-info'" />
+				<span class="jb-bookmark__page-text">{{ pageStatusText }}</span>
+				<XButton
+					v-if="canEdit"
+					variant="tertiary"
+					icon="rotate"
+					:loading="refreshing"
+					@click="refreshFromPage"
+				>
+					{{ $t('johnnysBrain.page.refresh') }}
+				</XButton>
+			</div>
 
 			<section
 				v-if="duplicates.length"
@@ -388,6 +407,7 @@ import {computed, reactive, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import {useQuery} from '@tanstack/vue-query'
+import {useTimeoutFn} from '@vueuse/core'
 import DOMPurify from 'dompurify'
 
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -410,6 +430,7 @@ import {
 	useDismissBookmarkDuplicateMutation,
 	useLinkBookmarkProjectMutation,
 	useMergeBookmarksMutation,
+	useRefreshBookmarkMutation,
 	useRemoveBookmarkLabelMutation,
 	useUnlinkBookmarkProjectMutation,
 	useUnlinkBookmarkTaskMutation,
@@ -426,7 +447,13 @@ const router = useRouter()
 const authStore = useAuthStore()
 const currentUserId = computed(() => authStore.info?.id)
 
-const bookmarkQueryResult = useQuery(computed(() => ({...bookmarkQuery(props.bookmarkId), meta: {handlesError: true}})))
+// While a refresh runs, ask again every moment: the server fetches the page in the background.
+const refreshing = ref(false)
+const bookmarkQueryResult = useQuery(computed(() => ({
+	...bookmarkQuery(props.bookmarkId),
+	meta: {handlesError: true},
+	refetchInterval: refreshing.value ? 1500 : false,
+})))
 const bookmark = computed(() => bookmarkQueryResult.data.value)
 const canEdit = computed(() => (bookmark.value?.max_permission ?? 0) >= 2)
 const commentsQueryResult = useQuery(computed(() => bookmarkCommentsQuery(props.bookmarkId)))
@@ -435,6 +462,58 @@ const comments = computed(() => commentsQueryResult.data.value ?? [])
 useTitle(() => bookmark.value?.title ?? t('johnnysBrain.bookmarks.title'))
 
 const iconBroken = ref(false)
+
+// Page status and refresh
+const refreshMutation = useRefreshBookmarkMutation()
+const checkedAtBeforeRefresh = ref<string | null | undefined>(undefined)
+const {start: startRefreshTimeout, stop: stopRefreshTimeout} = useTimeoutFn(() => {
+	refreshing.value = false
+}, 20_000, {immediate: false})
+
+watch(() => bookmark.value?.checked_at, checkedAt => {
+	if (refreshing.value && checkedAt !== checkedAtBeforeRefresh.value) {
+		refreshing.value = false
+		stopRefreshTimeout()
+	}
+})
+
+async function refreshFromPage() {
+	checkedAtBeforeRefresh.value = bookmark.value?.checked_at
+	refreshing.value = true
+	try {
+		await refreshMutation.mutateAsync(props.bookmarkId)
+		startRefreshTimeout()
+	} catch {
+		refreshing.value = false // the mutation has already shown why
+	}
+}
+
+const pageProblem = computed(() => {
+	const status = bookmark.value?.link_status ?? 0
+	return status >= 400 || status === -1
+})
+
+const pageStatusText = computed(() => {
+	const b = bookmark.value
+	if (!b) return ''
+	if (refreshing.value) return t('johnnysBrain.page.fetching')
+	if (!b.checked_at) return t('johnnysBrain.page.notChecked')
+	if (b.link_status === -2) return t('johnnysBrain.page.private')
+
+	const when = formatDisplayDate(b.checked_at)
+	let text: string
+	if (b.link_status === -1) {
+		text = t('johnnysBrain.page.unreachable', {when})
+	} else if (b.link_status >= 400) {
+		text = t('johnnysBrain.page.error', {status: b.link_status, when})
+	} else {
+		text = t('johnnysBrain.page.checkedOk', {when})
+	}
+	if (b.has_snapshot) {
+		text += ' ' + t(pageProblem.value ? 'johnnysBrain.page.copyKept' : 'johnnysBrain.page.textSaved')
+	}
+	return text
+})
 
 const draft = reactive({title: '', description: '', url: ''})
 watch(bookmark, value => {
@@ -940,5 +1019,22 @@ async function remove() {
 .jb-chip__task-icon {
 	color: var(--grey-500);
 	font-size: .7rem;
+}
+.jb-bookmark__page {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: .5rem .75rem;
+	margin-block-end: 1.25rem;
+	color: var(--grey-500);
+	font-size: .85rem;
+
+	&.is-problem {
+		color: var(--jb-prio-high, #ff9a14);
+	}
+}
+
+.jb-bookmark__page-text {
+	flex: 1 1 14rem;
 }
 </style>

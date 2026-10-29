@@ -18,7 +18,6 @@ package models
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"sort"
@@ -27,11 +26,9 @@ import (
 	"time"
 	"unicode"
 
-	"code.vikunja.io/api/pkg/db"
 	"code.vikunja.io/api/pkg/log"
 	"code.vikunja.io/api/pkg/web"
 
-	"github.com/ThreeDotsLabs/watermill/message"
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
@@ -149,39 +146,14 @@ func currentBookmarkDuplicateJudge() BookmarkDuplicateJudge {
 // duplicate detection compares.
 type BookmarkSavedEvent struct {
 	BookmarkID int64 `json:"bookmark_id"`
+	// FetchPage asks the listener to fetch the page first: set when the link is new or changed,
+	// or when the owner asks for a refresh. Edits to the title or description only re-check duplicates.
+	FetchPage bool `json:"fetch_page"`
 }
 
 // Name defines the name for BookmarkSavedEvent
 func (*BookmarkSavedEvent) Name() string {
 	return "bookmark.saved"
-}
-
-// DetectBookmarkDuplicates looks for possible duplicates of a freshly saved bookmark.
-type DetectBookmarkDuplicates struct{}
-
-// Name defines the name for the DetectBookmarkDuplicates listener
-func (*DetectBookmarkDuplicates) Name() string {
-	return "bookmark.duplicates.detect"
-}
-
-// Handle is executed when a bookmark is saved
-func (*DetectBookmarkDuplicates) Handle(msg *message.Message) error {
-	event := &BookmarkSavedEvent{}
-	if err := json.Unmarshal(msg.Payload, event); err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	defer cancel()
-
-	s := db.NewSession()
-	defer s.Close()
-
-	if err := DetectDuplicatesForBookmark(ctx, s, event.BookmarkID); err != nil {
-		_ = s.Rollback()
-		return err
-	}
-	return s.Commit()
 }
 
 type duplicateCandidate struct {

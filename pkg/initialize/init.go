@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"code.vikunja.io/api/pkg/modules/johnnysbrain/duplicatejudge"
+	"code.vikunja.io/api/pkg/modules/johnnysbrain/pagefetch"
 
 	"code.vikunja.io/api/pkg/audit"
 	"code.vikunja.io/api/pkg/config"
@@ -158,6 +159,8 @@ func FullInit() {
 
 	// Johnny's Brain: AI duplicate matching for bookmarks (off without an API key)
 	duplicatejudge.Init()
+	// Johnny's Brain: fetch page titles, icons, preview images and text for bookmarks
+	pagefetch.Init()
 
 	// Start processing events
 	go func() {

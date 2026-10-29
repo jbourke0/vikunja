@@ -59,7 +59,7 @@ type Bookmark struct {
 	// Reading status.
 	Status string `xorm:"varchar(20) not null default 'to_read' INDEX" json:"status" enum:"to_read,reference,archived" doc:"Reading status: to_read (default), reference or archived."`
 	// HTTP status code from the last link check.
-	LinkStatus int `xorm:"int not null default 0" json:"link_status" readOnly:"true" doc:"HTTP status code from the last link check, 0 if the link has not been checked. Set by the server."`
+	LinkStatus int `xorm:"int not null default 0" json:"link_status" readOnly:"true" doc:"HTTP status code from the last link check; 0 if never checked, -1 if the page could not be reached, -2 if it is on a private network and was not fetched. Set by the server."`
 	// When the link was last checked.
 	CheckedAt *time.Time `xorm:"datetime null" json:"checked_at" readOnly:"true" doc:"When the link was last checked, null if never. Set by the server."`
 
@@ -77,6 +77,8 @@ type Bookmark struct {
 	Projects []*BookmarkLinkedProject `xorm:"-" json:"projects" readOnly:"true" doc:"Projects this bookmark is linked to as a source, limited to those the caller can see. Filled on single reads only; managed through the bookmark projects endpoints."`
 	// Tasks this bookmark is linked to as a source.
 	Tasks []*BookmarkLinkedTask `xorm:"-" json:"tasks" readOnly:"true" doc:"Tasks this bookmark is linked to as a source, limited to those the caller can see. Filled on single reads only; managed through the bookmark tasks endpoints."`
+	// Whether the page's text was saved when the link was last fetched.
+	HasSnapshot bool `xorm:"-" json:"has_snapshot" readOnly:"true" doc:"Whether the readable text of the page is saved. It is searched by the q filter and kept if the page later disappears."`
 	// How many open duplicate suggestions involve this bookmark.
 	DuplicateCount int `xorm:"-" json:"duplicate_count" readOnly:"true" doc:"How many open possible-duplicate suggestions involve this bookmark. See the bookmark duplicates endpoint."`
 
@@ -124,7 +126,7 @@ func (b *Bookmark) normalizeAndValidate() error {
 	b.URLHash = BookmarkURLHash(b.URL)
 
 	if b.Title == "" {
-		b.Title = strings.TrimPrefix(parsed.Hostname(), "www.")
+		b.Title = defaultBookmarkTitle(b.URL)
 	}
 	if len([]rune(b.Title)) > 250 {
 		b.Title = string([]rune(b.Title)[:250])
@@ -161,7 +163,7 @@ func (b *Bookmark) Create(s *xorm.Session, a web.Auth) error {
 		return err
 	}
 
-	events.DispatchOnCommit(s, &BookmarkSavedEvent{BookmarkID: b.ID})
+	events.DispatchOnCommit(s, &BookmarkSavedEvent{BookmarkID: b.ID, FetchPage: true})
 	return nil
 }
 
@@ -213,9 +215,20 @@ func (b *Bookmark) Update(s *xorm.Session, a web.Auth) error {
 		return err
 	}
 
+	linkChanged := stored.URLHash != b.URLHash
+	if linkChanged {
+		// The old page text and link check belong to the old address.
+		if _, err := s.Where("bookmark_id = ?", b.ID).Delete(&BookmarkSnapshot{}); err != nil {
+			return err
+		}
+		if _, err := s.Exec("UPDATE bookmarks SET link_status = ?, checked_at = NULL WHERE id = ?", BookmarkLinkStatusUnchecked, b.ID); err != nil {
+			return err
+		}
+	}
+
 	// Only what the duplicate check compares should trigger a new check; status changes do not.
-	if stored.URLHash != b.URLHash || stored.Title != b.Title || stored.Description != b.Description || stored.SiteName != b.SiteName {
-		events.DispatchOnCommit(s, &BookmarkSavedEvent{BookmarkID: b.ID})
+	if linkChanged || stored.Title != b.Title || stored.Description != b.Description || stored.SiteName != b.SiteName {
+		events.DispatchOnCommit(s, &BookmarkSavedEvent{BookmarkID: b.ID, FetchPage: linkChanged})
 	}
 
 	return b.ReadOne(s, a)
@@ -266,6 +279,7 @@ func (b *Bookmark) ReadAll(s *xorm.Session, a web.Auth, search string, page int,
 			db.ILIKE("bookmarks.title", search),
 			db.ILIKE("bookmarks.url", search),
 			db.ILIKE("bookmarks.description", search),
+			builder.In("bookmarks.id", builder.Select("bookmark_id").From("bookmark_snapshots").Where(db.ILIKE("text", search))),
 		))
 	}
 	if b.FilterStatus != "" {
@@ -348,6 +362,16 @@ func addBookmarkDetails(s *xorm.Session, bookmarks []*Bookmark) error {
 	}
 	for _, b := range bookmarks {
 		b.DuplicateCount = counts[b.ID]
+	}
+
+	snapshots := []*BookmarkSnapshot{}
+	if err := s.Cols("bookmark_id").In("bookmark_id", ids).Find(&snapshots); err != nil {
+		return err
+	}
+	for _, snap := range snapshots {
+		if b, ok := byID[snap.BookmarkID]; ok {
+			b.HasSnapshot = true
+		}
 	}
 
 	creators, err := user.GetUsersByIDs(s, creatorIDs)

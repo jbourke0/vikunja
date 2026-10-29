@@ -96,6 +96,8 @@ import {
 	faBookmark,
 	faGlobe,
 	faClone,
+	faRotate,
+	faTriangleExclamation,
 } from '@fortawesome/free-solid-svg-icons'
 import {
 	faBellSlash,
@@ -187,6 +189,8 @@ library.add(faInbox)
 library.add(faBookmark)
 library.add(faGlobe)
 library.add(faClone)
+library.add(faRotate)
+library.add(faTriangleExclamation)
 library.add(faCalendarRegular)
 library.add(faPowerOff)
 library.add(faRss)

@@ -19,6 +19,7 @@ import {
 	bookmarksList,
 	bookmarksMerge,
 	bookmarksRead,
+	bookmarksRefresh,
 	bookmarksUpdate,
 } from '@/client/generated'
 import type {
@@ -47,6 +48,8 @@ export type BookmarkResponse = Bookmark & {
 	projects: BookmarkLinkedProject[]
 	tasks: BookmarkLinkedTask[]
 	duplicate_count: number
+	link_status: number
+	has_snapshot: boolean
 }
 
 export function normalizeBookmark(bookmark: Bookmark): BookmarkResponse {
@@ -60,6 +63,8 @@ export function normalizeBookmark(bookmark: Bookmark): BookmarkResponse {
 		projects: bookmark.projects ?? [],
 		tasks: bookmark.tasks ?? [],
 		duplicate_count: bookmark.duplicate_count ?? 0,
+		link_status: bookmark.link_status ?? 0,
+		has_snapshot: bookmark.has_snapshot ?? false,
 	}
 }
 
@@ -139,6 +144,8 @@ function writableBody(bookmark: BookmarkWritable): BookmarkWritable {
 	}
 }
 
+const PAGE_FETCH_REFRESH_DELAYS = [3000, 8000]
+
 export type CreateBookmarkInput = BookmarkWritable & {
 	/** Set when the caller handles a 409 "already saved" itself, so no error toast is shown. */
 	handlesAlreadySaved?: boolean
@@ -150,7 +157,13 @@ export function createBookmarkMutationOptions() {
 			const {data} = await bookmarksCreate({body: writableBody(input)})
 			return normalizeBookmark(data)
 		},
-		onSettled: (_input, client) => client.invalidateQueries({queryKey: bookmarkKeys.lists()}),
+		onSettled: async (_input, client) => {
+			await client.invalidateQueries({queryKey: bookmarkKeys.lists()})
+			// The server fetches the page in the background; pick up its title and icon when they land.
+			for (const delay of PAGE_FETCH_REFRESH_DELAYS) {
+				setTimeout(() => void client.invalidateQueries({queryKey: bookmarkKeys.lists()}), delay)
+			}
+		},
 		successMessage: () => i18n.global.t('johnnysBrain.bookmarks.saved'),
 		toastError: input => !input.handlesAlreadySaved,
 	})
@@ -428,4 +441,26 @@ export function useDismissBookmarkDuplicateMutation() {
 
 export function useMergeBookmarksMutation() {
 	return useMutation(mergeBookmarksMutationOptions())
+}
+
+// ---------------------------------------------------------------------------
+// Link previews
+// ---------------------------------------------------------------------------
+
+/** Asks the server to fetch the bookmark's page again; the result arrives a few seconds later. */
+export function refreshBookmarkMutationOptions() {
+	return contextMutationOptions({
+		mutationFn: async (bookmarkId: number) => {
+			await bookmarksRefresh({path: {bookmark: bookmarkId}})
+		},
+	})
+}
+
+export function useRefreshBookmarkMutation() {
+	return useMutation(refreshBookmarkMutationOptions())
+}
+
+/** A page that is gone, as opposed to one that blocks bots or needs a login. */
+export function isPageGone(linkStatus: number): boolean {
+	return linkStatus === 404 || linkStatus === 410
 }

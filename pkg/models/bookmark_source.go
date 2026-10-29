@@ -258,5 +258,5 @@ func registerBookmarkListeners() {
 	cleanup := &RemoveOrphanedBookmarkSources{}
 	events.RegisterListener((&TaskDeletedEvent{}).Name(), cleanup)
 	events.RegisterListener((&ProjectDeletedEvent{}).Name(), cleanup)
-	events.RegisterListener((&BookmarkSavedEvent{}).Name(), &DetectBookmarkDuplicates{})
+	events.RegisterListener((&BookmarkSavedEvent{}).Name(), &ProcessSavedBookmark{})
 }

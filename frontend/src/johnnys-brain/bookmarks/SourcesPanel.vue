@@ -27,6 +27,7 @@
 					<img
 						v-if="source.favicon_url && !brokenIcons.has(source.id)"
 						:src="source.favicon_url"
+						referrerpolicy="no-referrer"
 						alt=""
 						width="18"
 						height="18"

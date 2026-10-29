@@ -48,6 +48,7 @@ var exposedOperations = map[string]toolTier{
 	"bookmark-tasks-create":           catalogTool,
 	"bookmark-tasks-delete":           catalogTool,
 	"bookmarks-merge":                 catalogTool,
+	"bookmarks-refresh":               catalogTool,
 	"bookmarks-create":                typedTool,
 	"bookmarks-delete":                catalogTool,
 	"bookmarks-list":                  typedTool,

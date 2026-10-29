@@ -92,6 +92,7 @@
 					<img
 						v-if="bookmark.favicon_url && !brokenIcons.has(bookmark.id)"
 						:src="bookmark.favicon_url"
+						referrerpolicy="no-referrer"
 						alt=""
 						width="20"
 						height="20"
@@ -127,6 +128,13 @@
 							v-if="!status"
 							class="jb-bookmark-row__status"
 						>{{ statusLabel(bookmark.status) }}</span>
+						<span
+							v-if="isPageGone(bookmark.link_status)"
+							class="jb-bookmark-row__gone"
+						>
+							<Icon icon="triangle-exclamation" />
+							{{ $t('johnnysBrain.page.gone') }}
+						</span>
 						<span
 							v-if="bookmark.duplicate_count"
 							class="jb-bookmark-row__duplicate"
@@ -177,6 +185,7 @@ import {
 	type BookmarkStatus,
 	bookmarksQuery,
 	hostOf,
+	isPageGone,
 	useUpdateBookmarkMutation,
 } from '@/client/queries/bookmarks'
 import {useRouter} from 'vue-router'
@@ -402,6 +411,13 @@ function setStatus(bookmark: BookmarkResponse, status: BookmarkStatus) {
 
 .jb-bookmark-row__status {
 	color: var(--jb-date-tomorrow);
+}
+
+.jb-bookmark-row__gone {
+	display: inline-flex;
+	align-items: center;
+	gap: .3rem;
+	color: var(--jb-prio-high, #ff9a14);
 }
 
 .jb-bookmark-row__duplicate {

@@ -92,6 +92,7 @@ func SetupTests() {
 		"bookmark_tasks",
 		"label_bookmarks",
 		"bookmark_duplicates",
+		"bookmark_snapshots",
 	)
 	if err != nil {
 		log.Fatal(err)

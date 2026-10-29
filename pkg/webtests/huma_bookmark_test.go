@@ -17,6 +17,7 @@
 package webtests
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -396,4 +397,50 @@ func TestHumaBookmarkDuplicates(t *testing.T) {
 
 	rec = humaRequest(t, e, http.MethodPost, "/api/v2/bookmarks/1/duplicates/6/dismiss", "", token, "")
 	assert.Equal(t, http.StatusNoContent, rec.Code, "the fixture pair 1/6 can be dismissed again")
+}
+
+type noopPageFetcher struct{}
+
+func (noopPageFetcher) FetchPage(context.Context, string) (*models.BookmarkPage, error) {
+	return &models.BookmarkPage{StatusCode: 200}, nil
+}
+
+func TestHumaBookmarkRefresh(t *testing.T) {
+	e, err := setupTestEnv()
+	require.NoError(t, err)
+	token := humaTokenFor(t, &testuser1)
+
+	models.SetBookmarkPageFetcher(noopPageFetcher{})
+	defer models.SetBookmarkPageFetcher(nil)
+
+	rec := humaRequest(t, e, http.MethodPost, "/api/v2/bookmarks/1/refresh", "", token, "")
+	assert.Equal(t, http.StatusAccepted, rec.Code, rec.Body.String())
+
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/bookmarks/3/refresh", "", token, "")
+	assert.Equal(t, http.StatusForbidden, rec.Code, "a reader through a source link cannot refresh")
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/bookmarks/2/refresh", "", token, "")
+	assert.Equal(t, http.StatusForbidden, rec.Code, "private bookmark of another user")
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/bookmarks/9999/refresh", "", token, "")
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/bookmarks/1/refresh", "", "", "")
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+
+	models.SetBookmarkPageFetcher(nil)
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/bookmarks/1/refresh", "", token, "")
+	assert.Equal(t, http.StatusConflict, rec.Code)
+	assert.Contains(t, rec.Body.String(), "90013", "previews are switched off")
+}
+
+func TestHumaBookmarkSnapshotSearch(t *testing.T) {
+	h := webHandlerTestV2{user: &testuser1, basePath: "/api/v2/bookmarks", idParam: "bookmark", t: t}
+
+	rec, err := h.testReadAllWithUser(url.Values{"q": {"photographs"}}, nil)
+	require.NoError(t, err)
+	assert.Equal(t, []int64{1}, labelIDsFromReadAll(t, rec.Body.Bytes()), "page text is searched, without leaking user 2's private bookmark")
+	assert.Contains(t, rec.Body.String(), `"has_snapshot":true`)
+
+	rec, err = h.testReadOneWithUser(nil, map[string]string{"bookmark": "1"})
+	require.NoError(t, err)
+	assert.Contains(t, rec.Body.String(), `"has_snapshot":true`)
+	assert.Contains(t, rec.Body.String(), `"link_status":0`)
 }

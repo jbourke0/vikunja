@@ -1879,6 +1879,18 @@
       "merge": "Merge into this",
       "dismiss": "Not a duplicate",
       "confirmMerge": "Merge \"{title}\" into this bookmark? Its labels, comments and links move here, then it is deleted."
+    },
+    "page": {
+      "refresh": "Refresh from page",
+      "fetching": "Fetching the page…",
+      "notChecked": "The page hasn't been checked yet.",
+      "checkedOk": "Page checked {when}.",
+      "error": "The page returned an error ({status}) when checked {when}.",
+      "unreachable": "The page couldn't be reached when checked {when}.",
+      "private": "This address is on a private network, so no preview is fetched.",
+      "textSaved": "Its text is saved for search.",
+      "copyKept": "Your saved copy of its text is kept.",
+      "gone": "Page not found"
     }
   }
 }
