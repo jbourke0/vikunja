@@ -83,7 +83,8 @@ func (m *Module) Register(group *echo.Group) {
 
 func (m *Module) newServerForRequest(req *http.Request) *mcp.Server {
 	srv := mcp.NewServer(&mcp.Implementation{
-		Name:    "vikunja",
+		Name:    "johnny-brain-mcp",
+		Title:   "Johnny Brain MCP",
 		Version: version.Version,
 	}, &mcp.ServerOptions{Instructions: serverInstructions})
 	m.addToolsAuthorizedBy(srv, tokenFrom(humabridge.EchoContextFrom(req.Context())))
