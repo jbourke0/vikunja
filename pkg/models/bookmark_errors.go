@@ -1,0 +1,217 @@
+// Vikunja is a to-do list application to facilitate your life.
+// Copyright 2018-present Vikunja and contributors. All rights reserved.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+package models
+
+import (
+	"errors"
+	"fmt"
+	"net/http"
+
+	"code.vikunja.io/api/pkg/web"
+)
+
+// Johnny's Brain error codes live in the 90000 range to stay clear of upstream codes.
+
+// ErrBookmarkDoesNotExist represents an error where a bookmark does not exist.
+type ErrBookmarkDoesNotExist struct {
+	BookmarkID int64
+}
+
+// IsErrBookmarkDoesNotExist checks if an error is ErrBookmarkDoesNotExist.
+func IsErrBookmarkDoesNotExist(err error) bool {
+	var target ErrBookmarkDoesNotExist
+	return errors.As(err, &target)
+}
+
+func (err ErrBookmarkDoesNotExist) Error() string {
+	return fmt.Sprintf("Bookmark does not exist [BookmarkID: %v]", err.BookmarkID)
+}
+
+// ErrCodeBookmarkDoesNotExist holds the unique world-error code of this error
+const ErrCodeBookmarkDoesNotExist = 90001
+
+// HTTPError holds the http error description
+func (err ErrBookmarkDoesNotExist) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusNotFound,
+		Code:     ErrCodeBookmarkDoesNotExist,
+		Message:  "This bookmark does not exist.",
+	}
+}
+
+// ErrBookmarkInvalidURL represents an error where a bookmark URL is not an absolute http(s) URL.
+type ErrBookmarkInvalidURL struct {
+	URL string
+}
+
+// IsErrBookmarkInvalidURL checks if an error is ErrBookmarkInvalidURL.
+func IsErrBookmarkInvalidURL(err error) bool {
+	var target ErrBookmarkInvalidURL
+	return errors.As(err, &target)
+}
+
+func (err ErrBookmarkInvalidURL) Error() string {
+	return fmt.Sprintf("Bookmark URL is invalid [URL: %q]", err.URL)
+}
+
+// ErrCodeBookmarkInvalidURL holds the unique world-error code of this error
+const ErrCodeBookmarkInvalidURL = 90002
+
+// HTTPError holds the http error description
+func (err ErrBookmarkInvalidURL) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusBadRequest,
+		Code:     ErrCodeBookmarkInvalidURL,
+		Message:  "The bookmark URL must be a full http or https address.",
+	}
+}
+
+// ErrBookmarkInvalidStatus represents an error where a bookmark status is unknown.
+type ErrBookmarkInvalidStatus struct {
+	Status string
+}
+
+// IsErrBookmarkInvalidStatus checks if an error is ErrBookmarkInvalidStatus.
+func IsErrBookmarkInvalidStatus(err error) bool {
+	var target ErrBookmarkInvalidStatus
+	return errors.As(err, &target)
+}
+
+func (err ErrBookmarkInvalidStatus) Error() string {
+	return fmt.Sprintf("Bookmark status is invalid [Status: %q]", err.Status)
+}
+
+// ErrCodeBookmarkInvalidStatus holds the unique world-error code of this error
+const ErrCodeBookmarkInvalidStatus = 90003
+
+// HTTPError holds the http error description
+func (err ErrBookmarkInvalidStatus) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusBadRequest,
+		Code:     ErrCodeBookmarkInvalidStatus,
+		Message:  "The bookmark status must be to_read, reference or archived.",
+	}
+}
+
+// ErrBookmarkCommentDoesNotExist represents an error where a bookmark comment does not exist.
+type ErrBookmarkCommentDoesNotExist struct {
+	CommentID  int64
+	BookmarkID int64
+}
+
+// IsErrBookmarkCommentDoesNotExist checks if an error is ErrBookmarkCommentDoesNotExist.
+func IsErrBookmarkCommentDoesNotExist(err error) bool {
+	var target ErrBookmarkCommentDoesNotExist
+	return errors.As(err, &target)
+}
+
+func (err ErrBookmarkCommentDoesNotExist) Error() string {
+	return fmt.Sprintf("Bookmark comment does not exist [CommentID: %v, BookmarkID: %v]", err.CommentID, err.BookmarkID)
+}
+
+// ErrCodeBookmarkCommentDoesNotExist holds the unique world-error code of this error
+const ErrCodeBookmarkCommentDoesNotExist = 90004
+
+// HTTPError holds the http error description
+func (err ErrBookmarkCommentDoesNotExist) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusNotFound,
+		Code:     ErrCodeBookmarkCommentDoesNotExist,
+		Message:  "This bookmark comment does not exist.",
+	}
+}
+
+// ErrBookmarkCommentEmpty represents an error where a bookmark comment has no text.
+type ErrBookmarkCommentEmpty struct{}
+
+// IsErrBookmarkCommentEmpty checks if an error is ErrBookmarkCommentEmpty.
+func IsErrBookmarkCommentEmpty(err error) bool {
+	var target ErrBookmarkCommentEmpty
+	return errors.As(err, &target)
+}
+
+func (err ErrBookmarkCommentEmpty) Error() string {
+	return "Bookmark comment is empty"
+}
+
+// ErrCodeBookmarkCommentEmpty holds the unique world-error code of this error
+const ErrCodeBookmarkCommentEmpty = 90005
+
+// HTTPError holds the http error description
+func (err ErrBookmarkCommentEmpty) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusBadRequest,
+		Code:     ErrCodeBookmarkCommentEmpty,
+		Message:  "A comment needs some text.",
+	}
+}
+
+// ErrLabelIsAlreadyOnBookmark represents an error where a label is already on a bookmark.
+type ErrLabelIsAlreadyOnBookmark struct {
+	LabelID    int64
+	BookmarkID int64
+}
+
+// IsErrLabelIsAlreadyOnBookmark checks if an error is ErrLabelIsAlreadyOnBookmark.
+func IsErrLabelIsAlreadyOnBookmark(err error) bool {
+	var target ErrLabelIsAlreadyOnBookmark
+	return errors.As(err, &target)
+}
+
+func (err ErrLabelIsAlreadyOnBookmark) Error() string {
+	return fmt.Sprintf("Label already exists on bookmark [LabelID: %v, BookmarkID: %v]", err.LabelID, err.BookmarkID)
+}
+
+// ErrCodeLabelIsAlreadyOnBookmark holds the unique world-error code of this error
+const ErrCodeLabelIsAlreadyOnBookmark = 90006
+
+// HTTPError holds the http error description
+func (err ErrLabelIsAlreadyOnBookmark) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusConflict,
+		Code:     ErrCodeLabelIsAlreadyOnBookmark,
+		Message:  "This label is already on the bookmark.",
+	}
+}
+
+// ErrLabelIsNotOnBookmark represents an error where a label to remove is not on the bookmark.
+type ErrLabelIsNotOnBookmark struct {
+	LabelID    int64
+	BookmarkID int64
+}
+
+// IsErrLabelIsNotOnBookmark checks if an error is ErrLabelIsNotOnBookmark.
+func IsErrLabelIsNotOnBookmark(err error) bool {
+	var target ErrLabelIsNotOnBookmark
+	return errors.As(err, &target)
+}
+
+func (err ErrLabelIsNotOnBookmark) Error() string {
+	return fmt.Sprintf("Label is not on bookmark [LabelID: %v, BookmarkID: %v]", err.LabelID, err.BookmarkID)
+}
+
+// ErrCodeLabelIsNotOnBookmark holds the unique world-error code of this error
+const ErrCodeLabelIsNotOnBookmark = 90007
+
+// HTTPError holds the http error description
+func (err ErrLabelIsNotOnBookmark) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusNotFound,
+		Code:     ErrCodeLabelIsNotOnBookmark,
+		Message:  "This label is not on the bookmark.",
+	}
+}

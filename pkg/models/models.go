@@ -42,7 +42,7 @@ func init() {
 
 // GetTables returns all structs which are also a table.
 func GetTables() []interface{} {
-	return []interface{}{
+	return append([]interface{}{
 		&Project{},
 		&ProjectAncestor{},
 		&Task{},
@@ -77,7 +77,7 @@ func GetTables() []interface{} {
 		&TimeEntry{},
 		&UserInviteLink{},
 		&UserInviteLinkTeam{},
-	}
+	}, bookmarkTables()...)
 }
 
 // SetEngine sets the xorm.Engine

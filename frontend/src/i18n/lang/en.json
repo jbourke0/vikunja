@@ -1814,7 +1814,45 @@
     "nav": {
       "addTask": "Add task",
       "inbox": "Inbox",
-      "today": "Today"
+      "today": "Today",
+      "bookmarks": "Bookmarks"
+    },
+    "bookmarks": {
+      "title": "Bookmarks",
+      "count": "No bookmarks | 1 bookmark | {count} bookmarks",
+      "urlLabel": "Link",
+      "urlPlaceholder": "Paste a link to save it",
+      "save": "Save",
+      "saved": "Bookmark saved.",
+      "deleted": "Bookmark deleted.",
+      "statusFilter": "Reading status",
+      "status": {
+        "to_read": "To read",
+        "reference": "Reference",
+        "archived": "Archived"
+      },
+      "all": "All",
+      "search": "Search bookmarks",
+      "empty": "Nothing saved here yet. Paste a link above to save one.",
+      "noMatches": "No bookmarks match that search.",
+      "open": "Open link",
+      "archive": "Archive",
+      "notFound": "This bookmark doesn't exist or you don't have access to it.",
+      "titleLabel": "Title",
+      "labels": "Labels",
+      "addLabel": "Add label",
+      "removeLabel": "Remove label {label}",
+      "noLabels": "No labels",
+      "description": "Description",
+      "descriptionPlaceholder": "What's this page about?",
+      "noDescription": "No description.",
+      "comments": "Comments",
+      "addComment": "Add comment",
+      "commentPlaceholder": "Add a note or thought",
+      "confirmDeleteComment": "Delete this comment?",
+      "savedOn": "Saved {date}",
+      "delete": "Delete bookmark",
+      "confirmDelete": "Delete this bookmark, its comments and its labels? This can't be undone."
     }
   }
 }

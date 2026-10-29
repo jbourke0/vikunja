@@ -1,0 +1,682 @@
+<!-- eslint-disable vue/no-v-html -->
+<template>
+	<div class="jb-bookmark is-max-width-desktop">
+		<RouterLink
+			:to="{name: 'bookmarks.index'}"
+			class="jb-bookmark__back"
+		>
+			<Icon icon="arrow-left" />
+			{{ $t('johnnysBrain.bookmarks.title') }}
+		</RouterLink>
+
+		<p
+			v-if="bookmarkQueryResult.isError.value"
+			class="jb-bookmark__missing"
+		>
+			{{ $t('johnnysBrain.bookmarks.notFound') }}
+		</p>
+
+		<template v-else-if="bookmark">
+			<header class="jb-bookmark__header">
+				<span class="jb-bookmark__icon">
+					<img
+						v-if="bookmark.favicon_url && !iconBroken"
+						:src="bookmark.favicon_url"
+						alt=""
+						width="28"
+						height="28"
+						@error="iconBroken = true"
+					>
+					<Icon
+						v-else
+						icon="globe"
+					/>
+				</span>
+				<div class="jb-bookmark__heading">
+					<textarea
+						v-if="canEdit"
+						v-model="draft.title"
+						class="jb-bookmark__title-input"
+						rows="1"
+						:aria-label="$t('johnnysBrain.bookmarks.titleLabel')"
+						@keydown.enter.prevent="($event.target as HTMLTextAreaElement).blur()"
+						@blur="saveIfChanged"
+					/>
+					<h1
+						v-else
+						class="title"
+					>
+						{{ bookmark.title }}
+					</h1>
+					<a
+						:href="bookmark.url"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="jb-bookmark__url"
+					>
+						{{ hostOf(bookmark.url) }}
+						<Icon icon="arrow-up-right-from-square" />
+					</a>
+				</div>
+			</header>
+
+			<img
+				v-if="bookmark.image_url"
+				:src="bookmark.image_url"
+				alt=""
+				class="jb-bookmark__image"
+				loading="lazy"
+			>
+
+			<section class="jb-bookmark__section">
+				<div
+					class="jb-segmented"
+					role="radiogroup"
+					:aria-label="$t('johnnysBrain.bookmarks.statusFilter')"
+				>
+					<button
+						v-for="status in BOOKMARK_STATUSES"
+						:key="status"
+						type="button"
+						role="radio"
+						class="jb-segmented__option"
+						:class="{'is-active': bookmark.status === status}"
+						:aria-checked="bookmark.status === status"
+						:disabled="!canEdit"
+						@click="setStatus(status)"
+					>
+						{{ $t(`johnnysBrain.bookmarks.status.${status}`) }}
+					</button>
+				</div>
+			</section>
+
+			<section class="jb-bookmark__section">
+				<h3 class="jb-bookmark__label">
+					{{ $t('johnnysBrain.bookmarks.labels') }}
+				</h3>
+				<div class="jb-bookmark__labels">
+					<span
+						v-for="label in bookmark.labels"
+						:key="label.id"
+						class="jb-chip"
+					>
+						<span
+							class="jb-dot"
+							:style="{background: label.hex_color ? `#${label.hex_color}` : undefined}"
+						/>
+						{{ label.title }}
+						<BaseButton
+							v-if="canEdit"
+							class="jb-chip__remove"
+							:aria-label="$t('johnnysBrain.bookmarks.removeLabel', {label: label.title})"
+							@click="removeLabel(label.id ?? 0)"
+						>
+							<Icon icon="times" />
+						</BaseButton>
+					</span>
+					<select
+						v-if="canEdit && availableLabels.length"
+						class="jb-bookmark__add-label"
+						:aria-label="$t('johnnysBrain.bookmarks.addLabel')"
+						value=""
+						@change="addLabel(($event.target as HTMLSelectElement))"
+					>
+						<option
+							value=""
+							disabled
+						>
+							+ {{ $t('johnnysBrain.bookmarks.addLabel') }}
+						</option>
+						<option
+							v-for="label in availableLabels"
+							:key="label.id"
+							:value="label.id"
+						>
+							{{ label.title }}
+						</option>
+					</select>
+					<span
+						v-if="!bookmark.labels.length && !(canEdit && availableLabels.length)"
+						class="jb-muted"
+					>{{ $t('johnnysBrain.bookmarks.noLabels') }}</span>
+				</div>
+			</section>
+
+			<section class="jb-bookmark__section">
+				<label
+					class="jb-bookmark__label"
+					for="jb-bookmark-description"
+				>{{ $t('johnnysBrain.bookmarks.description') }}</label>
+				<textarea
+					v-if="canEdit"
+					id="jb-bookmark-description"
+					v-model="draft.description"
+					class="textarea"
+					rows="3"
+					:placeholder="$t('johnnysBrain.bookmarks.descriptionPlaceholder')"
+					@blur="saveIfChanged"
+				/>
+				<p
+					v-else
+					class="jb-bookmark__description"
+				>
+					{{ bookmark.description || $t('johnnysBrain.bookmarks.noDescription') }}
+				</p>
+				<label
+					v-if="canEdit"
+					class="jb-bookmark__label jb-bookmark__label--spaced"
+					for="jb-bookmark-url-edit"
+				>{{ $t('johnnysBrain.bookmarks.urlLabel') }}</label>
+				<input
+					v-if="canEdit"
+					id="jb-bookmark-url-edit"
+					v-model="draft.url"
+					class="input"
+					type="url"
+					@blur="saveIfChanged"
+				>
+			</section>
+
+			<section class="jb-bookmark__section">
+				<h3 class="jb-bookmark__label">
+					{{ $t('johnnysBrain.bookmarks.comments') }}
+				</h3>
+				<ul class="jb-comments">
+					<li
+						v-for="comment in comments"
+						:key="comment.id"
+						class="jb-comment"
+					>
+						<div class="jb-comment__meta">
+							<strong>{{ comment.author?.name || comment.author?.username }}</strong>
+							<time
+								v-if="comment.created"
+								:datetime="comment.created"
+								:title="formatDateLong(comment.created)"
+							>{{ formatDisplayDate(comment.created) }}</time>
+							<BaseButton
+								v-if="comment.author?.id === currentUserId"
+								class="jb-comment__delete"
+								@click="deleteComment(comment.id ?? 0)"
+							>
+								{{ $t('misc.delete') }}
+							</BaseButton>
+						</div>
+						<!-- Comment HTML is sanitised with DOMPurify before rendering. -->
+						<div
+							class="jb-comment__body content"
+							v-html="sanitize(comment.comment ?? '')"
+						/>
+					</li>
+				</ul>
+				<form
+					class="jb-comment-form"
+					@submit.prevent="addComment"
+				>
+					<label
+						class="is-sr-only"
+						for="jb-new-comment"
+					>{{ $t('johnnysBrain.bookmarks.addComment') }}</label>
+					<textarea
+						id="jb-new-comment"
+						v-model="newComment"
+						class="textarea"
+						rows="2"
+						:placeholder="$t('johnnysBrain.bookmarks.commentPlaceholder')"
+						@keydown.meta.enter="addComment"
+						@keydown.ctrl.enter="addComment"
+					/>
+					<XButton
+						type="submit"
+						:loading="createCommentMutation.isPending.value"
+						:disabled="newComment.trim() === ''"
+					>
+						{{ $t('johnnysBrain.bookmarks.addComment') }}
+					</XButton>
+				</form>
+			</section>
+
+			<footer
+				v-if="canEdit"
+				class="jb-bookmark__footer"
+			>
+				<span class="jb-muted">{{ $t('johnnysBrain.bookmarks.savedOn', {date: formatDateLong(bookmark.created)}) }}</span>
+				<XButton
+					variant="tertiary"
+					danger
+					icon="trash-alt"
+					@click="remove"
+				>
+					{{ $t('johnnysBrain.bookmarks.delete') }}
+				</XButton>
+			</footer>
+		</template>
+	</div>
+</template>
+
+<script setup lang="ts">
+import {computed, reactive, ref, watch} from 'vue'
+import {useI18n} from 'vue-i18n'
+import {useRouter} from 'vue-router'
+import {useQuery} from '@tanstack/vue-query'
+import DOMPurify from 'dompurify'
+
+import BaseButton from '@/components/base/BaseButton.vue'
+import XButton from '@/components/input/Button.vue'
+import {useTitle} from '@/composables/useTitle'
+import {useLabels} from '@/composables/useLabels'
+import {useAuthStore} from '@/stores/auth'
+import {useGlobalNow} from '@/composables/useGlobalNow'
+import {formatDateLong, formatDisplayDate} from '@/helpers/time/formatDate'
+import {
+	BOOKMARK_STATUSES,
+	type BookmarkStatus,
+	bookmarkCommentsQuery,
+	bookmarkQuery,
+	hostOf,
+	useAddBookmarkLabelMutation,
+	useCreateBookmarkCommentMutation,
+	useDeleteBookmarkCommentMutation,
+	useDeleteBookmarkMutation,
+	useRemoveBookmarkLabelMutation,
+	useUpdateBookmarkMutation,
+} from '@/client/queries/bookmarks'
+
+const props = defineProps<{
+	bookmarkId: number
+}>()
+
+const {t} = useI18n({useScope: 'global'})
+const router = useRouter()
+// Initialise the shared clock during setup: the date formatters below would otherwise create it
+// mid-render, where its route hook cannot be registered.
+useGlobalNow()
+const authStore = useAuthStore()
+const currentUserId = computed(() => authStore.info?.id)
+
+const bookmarkQueryResult = useQuery(computed(() => ({...bookmarkQuery(props.bookmarkId), meta: {handlesError: true}})))
+const bookmark = computed(() => bookmarkQueryResult.data.value)
+const canEdit = computed(() => (bookmark.value?.max_permission ?? 0) >= 2)
+const commentsQueryResult = useQuery(computed(() => bookmarkCommentsQuery(props.bookmarkId)))
+const comments = computed(() => commentsQueryResult.data.value ?? [])
+
+useTitle(() => bookmark.value?.title ?? t('johnnysBrain.bookmarks.title'))
+
+const iconBroken = ref(false)
+
+const draft = reactive({title: '', description: '', url: ''})
+watch(bookmark, value => {
+	if (!value) return
+	draft.title = value.title
+	draft.description = value.description ?? ''
+	draft.url = value.url
+}, {immediate: true})
+
+const updateMutation = useUpdateBookmarkMutation()
+
+function saveIfChanged() {
+	const current = bookmark.value
+	if (!current) return
+	if (draft.title.trim() === current.title && draft.description === (current.description ?? '') && draft.url.trim() === current.url) {
+		return
+	}
+	updateMutation.mutate({...current, title: draft.title.trim(), description: draft.description, url: draft.url.trim()})
+}
+
+function setStatus(status: BookmarkStatus) {
+	const current = bookmark.value
+	if (!current || current.status === status) return
+	updateMutation.mutate({...current, status})
+}
+
+const {labels: allLabels} = useLabels()
+const availableLabels = computed(() => {
+	const onBookmark = new Set((bookmark.value?.labels ?? []).map(l => l.id))
+	return allLabels.value.filter(l => !onBookmark.has(l.id))
+})
+const addLabelMutation = useAddBookmarkLabelMutation()
+const removeLabelMutation = useRemoveBookmarkLabelMutation()
+
+function addLabel(select: HTMLSelectElement) {
+	const labelId = Number(select.value)
+	select.value = ''
+	if (labelId) addLabelMutation.mutate({bookmarkId: props.bookmarkId, labelId})
+}
+
+function removeLabel(labelId: number) {
+	removeLabelMutation.mutate({bookmarkId: props.bookmarkId, labelId})
+}
+
+function sanitize(html: string): string {
+	return DOMPurify.sanitize(html)
+}
+
+function escapeHtml(text: string): string {
+	const div = document.createElement('div')
+	div.textContent = text
+	return div.innerHTML
+}
+
+const newComment = ref('')
+const createCommentMutation = useCreateBookmarkCommentMutation()
+const deleteCommentMutation = useDeleteBookmarkCommentMutation()
+
+async function addComment() {
+	const text = newComment.value.trim()
+	if (text === '') return
+	const html = text
+		.split(/\n{2,}/)
+		.map(paragraph => `<p>${escapeHtml(paragraph).replace(/\n/g, '<br>')}</p>`)
+		.join('')
+	try {
+		await createCommentMutation.mutateAsync({bookmarkId: props.bookmarkId, comment: html})
+	} catch {
+		return
+	}
+	newComment.value = ''
+}
+
+function deleteComment(commentId: number) {
+	if (!window.confirm(t('johnnysBrain.bookmarks.confirmDeleteComment'))) return
+	deleteCommentMutation.mutate({bookmarkId: props.bookmarkId, commentId})
+}
+
+const deleteMutation = useDeleteBookmarkMutation()
+
+async function remove() {
+	if (!window.confirm(t('johnnysBrain.bookmarks.confirmDelete'))) return
+	try {
+		await deleteMutation.mutateAsync(props.bookmarkId)
+	} catch {
+		return
+	}
+	router.push({name: 'bookmarks.index'})
+}
+</script>
+
+<style lang="scss" scoped>
+.jb-bookmark__back {
+	display: inline-flex;
+	align-items: center;
+	gap: .4rem;
+	color: var(--grey-500);
+	font-size: .9rem;
+	margin-block-end: 1rem;
+
+	&:hover {
+		color: var(--jb-green);
+	}
+}
+
+.jb-bookmark__missing {
+	color: var(--grey-500);
+	padding-block: 2rem;
+}
+
+.jb-bookmark__header {
+	display: flex;
+	align-items: flex-start;
+	gap: .85rem;
+	margin-block-end: 1rem;
+}
+
+.jb-bookmark__icon {
+	flex: 0 0 2.25rem;
+	block-size: 2.25rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 10px;
+	background: var(--grey-100);
+	color: var(--grey-500);
+	margin-block-start: .2rem;
+
+	img {
+		border-radius: 6px;
+	}
+}
+
+.jb-bookmark__heading {
+	flex: 1;
+	min-inline-size: 0;
+
+	.title {
+		margin: 0;
+		font-size: 1.5rem;
+		overflow-wrap: anywhere;
+	}
+}
+
+.jb-bookmark__title-input {
+	display: block;
+	inline-size: 100%;
+	resize: none;
+	overflow: hidden;
+	field-sizing: content;
+	line-height: 1.25;
+	background: transparent;
+	border: 0;
+	border-block-end: 1px solid transparent;
+	color: var(--text);
+	font-family: var(--jb-font-heading);
+	font-weight: 700;
+	font-size: 1.5rem;
+	letter-spacing: -.015em;
+	padding: 0 0 .1rem;
+
+	&:hover {
+		border-block-end-color: var(--grey-300);
+	}
+
+	&:focus {
+		border-block-end-color: var(--jb-green);
+		outline: none;
+	}
+}
+
+.jb-bookmark__url {
+	display: inline-flex;
+	align-items: center;
+	gap: .35rem;
+	color: var(--jb-green);
+	font-size: .9rem;
+	overflow-wrap: anywhere;
+
+	.icon,
+	svg {
+		font-size: .75rem;
+	}
+}
+
+.jb-bookmark__image {
+	display: block;
+	inline-size: 100%;
+	max-block-size: 260px;
+	object-fit: cover;
+	border-radius: var(--jb-radius-card);
+	margin-block-end: 1.25rem;
+	background: var(--grey-100);
+}
+
+.jb-bookmark__section {
+	margin-block-end: 1.5rem;
+}
+
+.jb-bookmark__label {
+	display: block;
+	font-family: var(--jb-font-body);
+	font-size: .8rem !important;
+	font-weight: 600 !important;
+	text-transform: uppercase;
+	letter-spacing: .06em;
+	color: var(--grey-500);
+	margin-block-end: .5rem;
+}
+
+.jb-bookmark__label--spaced {
+	margin-block-start: 1rem;
+}
+
+.jb-segmented {
+	display: inline-flex;
+	padding: .2rem;
+	border-radius: 999px;
+	background: var(--grey-100);
+	gap: .15rem;
+}
+
+.jb-segmented__option {
+	border: 0;
+	background: transparent;
+	color: var(--grey-500);
+	padding: .4rem .9rem;
+	border-radius: 999px;
+	font: inherit;
+	font-size: .9rem;
+	font-weight: 500;
+	cursor: pointer;
+
+	&:hover:not(:disabled) {
+		color: var(--text);
+	}
+
+	&.is-active {
+		background: var(--jb-green);
+		color: var(--jb-green-ink);
+		font-weight: 600;
+	}
+
+	&:disabled {
+		cursor: default;
+	}
+}
+
+.jb-bookmark__labels {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: .4rem;
+}
+
+.jb-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: .4rem;
+	padding: .25rem .4rem .25rem .7rem;
+	border-radius: 999px;
+	background: var(--grey-100);
+	font-size: .85rem;
+}
+
+.jb-chip__remove {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	inline-size: 1.4rem;
+	block-size: 1.4rem;
+	border-radius: 50%;
+	color: var(--grey-500);
+	font-size: .7rem;
+
+	&:hover {
+		color: var(--text);
+		background: var(--grey-200);
+	}
+}
+
+.jb-dot {
+	inline-size: .5rem;
+	block-size: .5rem;
+	border-radius: 50%;
+	background: var(--grey-400);
+}
+
+.jb-bookmark__add-label {
+	appearance: none;
+	border: 1px dashed var(--grey-300);
+	background: transparent;
+	color: var(--grey-500);
+	border-radius: 999px;
+	padding: .3rem .8rem;
+	font: inherit;
+	font-size: .85rem;
+	cursor: pointer;
+
+	&:hover,
+	&:focus {
+		border-color: var(--jb-green);
+		color: var(--jb-green);
+	}
+}
+
+.jb-bookmark__description {
+	white-space: pre-wrap;
+	color: var(--text);
+}
+
+.jb-muted {
+	color: var(--grey-500);
+	font-size: .85rem;
+}
+
+.jb-comments {
+	list-style: none;
+	margin: 0 0 1rem;
+	padding: 0;
+}
+
+.jb-comment {
+	padding-block: .75rem;
+	border-block-end: 1px solid var(--jb-divider);
+}
+
+.jb-comment__meta {
+	display: flex;
+	align-items: baseline;
+	gap: .6rem;
+	font-size: .85rem;
+
+	time {
+		color: var(--grey-500);
+	}
+}
+
+.jb-comment__delete {
+	margin-inline-start: auto;
+	color: var(--grey-500);
+	font-size: .8rem;
+
+	&:hover {
+		color: var(--danger);
+	}
+}
+
+.jb-comment__body {
+	margin-block-start: .3rem;
+	font-size: .95rem;
+
+	:deep(p:last-child) {
+		margin-block-end: 0;
+	}
+}
+
+.jb-comment-form {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: .5rem;
+
+	.textarea {
+		inline-size: 100%;
+	}
+}
+
+.jb-bookmark__footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding-block-start: 1rem;
+	border-block-start: 1px solid var(--jb-divider);
+}
+</style>

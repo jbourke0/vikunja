@@ -85,6 +85,12 @@ func SetupTests() {
 		"totp",
 		"oauth_codes",
 		"notifications",
+		// Johnny's Brain
+		"bookmarks",
+		"bookmark_comments",
+		"bookmark_projects",
+		"bookmark_tasks",
+		"label_bookmarks",
 	)
 	if err != nil {
 		log.Fatal(err)

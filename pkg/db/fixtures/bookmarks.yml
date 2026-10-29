@@ -1,0 +1,52 @@
+# Johnny's Brain bookmarks.
+# 1, 6: user 1's own. 2: user 2, private. 3: user 2, linked to project 1 (user 1's).
+# 4: user 2, linked to task 1 (project 1). 5: user 13, linked to project 20 and task 34 (user 13 only).
+- id: 1
+  url: 'https://example.com/one'
+  title: 'Bookmark #1'
+  description: 'First example bookmark'
+  status: 'to_read'
+  link_status: 0
+  created_by_id: 1
+  created: 2018-12-01 15:13:12
+  updated: 2018-12-02 15:13:12
+- id: 2
+  url: 'https://example.com/two'
+  title: 'Bookmark #2 - private to user 2'
+  status: 'to_read'
+  link_status: 0
+  created_by_id: 2
+  created: 2018-12-01 15:13:13
+  updated: 2018-12-02 15:13:12
+- id: 3
+  url: 'https://example.com/three'
+  title: 'Bookmark #3 - user 2, source on project 1'
+  status: 'reference'
+  link_status: 0
+  created_by_id: 2
+  created: 2018-12-01 15:13:14
+  updated: 2018-12-02 15:13:12
+- id: 4
+  url: 'https://example.com/four'
+  title: 'Bookmark #4 - user 2, source on task 1'
+  status: 'to_read'
+  link_status: 0
+  created_by_id: 2
+  created: 2018-12-01 15:13:15
+  updated: 2018-12-02 15:13:12
+- id: 5
+  url: 'https://example.com/five'
+  title: 'Bookmark #5 - user 13 only'
+  status: 'to_read'
+  link_status: 0
+  created_by_id: 13
+  created: 2018-12-01 15:13:16
+  updated: 2018-12-02 15:13:12
+- id: 6
+  url: 'https://example.org/six'
+  title: 'Bookmark #6 - archived'
+  status: 'archived'
+  link_status: 0
+  created_by_id: 1
+  created: 2018-12-01 15:13:17
+  updated: 2018-12-02 15:13:12

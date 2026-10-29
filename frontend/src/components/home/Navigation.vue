@@ -66,6 +66,14 @@
 					</RouterLink>
 				</li>
 				<li>
+					<RouterLink :to="{ name: 'bookmarks.index' }">
+						<span class="menu-item-icon icon">
+							<Icon icon="bookmark" />
+						</span>
+						{{ $t('johnnysBrain.nav.bookmarks') }}
+					</RouterLink>
+				</li>
+				<li>
 					<RouterLink
 						v-shortcut="SHORTCUTS.navigation.overview"
 						:to="{ name: 'home'}"

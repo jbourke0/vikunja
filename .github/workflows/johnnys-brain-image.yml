@@ -18,7 +18,47 @@ env:
   IMAGE: ghcr.io/${{ github.repository_owner }}/vikunja
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+          CYPRESS_INSTALL_BINARY: '0'
+        run: |
+          npm install -g corepack
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      - name: Frontend lint and unit tests
+        working-directory: frontend
+        run: |
+          pnpm lint
+          pnpm vitest run --dir ./src
+
+      - name: Backend tests
+        run: |
+          # The Go build embeds frontend/dist; tests only need it to exist.
+          mkdir -p frontend/dist && touch frontend/dist/index.html
+          go install github.com/magefile/mage@latest
+          mage test:feature
+          go test -count=1 ./pkg/webtests/ ./pkg/migration/
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read

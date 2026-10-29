@@ -216,6 +216,10 @@ func isStandardCRUDRoute(routeGroupName string, routeParts []string, _ string) b
 		"tasks_relations":      true,
 		"teams_members":        true,
 		"projects_views_tasks": true,
+		// Johnny's Brain
+		"bookmarks":          true,
+		"bookmarks_comments": true,
+		"bookmarks_labels":   true,
 	}
 
 	// Check if this is a standard CRUD resource

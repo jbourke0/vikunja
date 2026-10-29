@@ -409,6 +409,23 @@ const router = createRouter({
 			name: 'teams.edit',
 			component: () => import('@/views/teams/EditTeam.vue'),
 		},
+		// Johnny's Brain
+		{
+			path: '/bookmarks',
+			name: 'bookmarks.index',
+			component: () => import('@/johnnys-brain/bookmarks/BookmarksList.vue'),
+			props: route => ({
+				status: ['to_read', 'reference', 'archived'].includes(route.query.status as string)
+					? route.query.status as string
+					: undefined,
+			}),
+		},
+		{
+			path: '/bookmarks/:bookmarkId(\\d+)',
+			name: 'bookmarks.detail',
+			component: () => import('@/johnnys-brain/bookmarks/BookmarkDetail.vue'),
+			props: route => ({bookmarkId: Number(route.params.bookmarkId as string)}),
+		},
 		{
 			path: '/labels',
 			name: 'labels.index',

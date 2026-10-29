@@ -1,0 +1,18 @@
+- id: 1
+  comment: 'Comment on bookmark 1 by user 1'
+  author_id: 1
+  bookmark_id: 1
+  created: 2018-12-01 15:13:12
+  updated: 2018-12-01 15:13:12
+- id: 2
+  comment: 'Comment on bookmark 3 by user 2'
+  author_id: 2
+  bookmark_id: 3
+  created: 2018-12-01 15:13:12
+  updated: 2018-12-01 15:13:12
+- id: 3
+  comment: 'Comment on private bookmark 2 by user 2'
+  author_id: 2
+  bookmark_id: 2
+  created: 2018-12-01 15:13:12
+  updated: 2018-12-01 15:13:12

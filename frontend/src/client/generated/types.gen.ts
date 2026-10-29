@@ -228,6 +228,194 @@ export type AuthorizeResponse = {
     state?: string;
 };
 
+export type Bookmark = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * When the link was last checked, null if never. Set by the server.
+     */
+    readonly checked_at?: string | null;
+    /**
+     * A timestamp when this bookmark was created. You cannot change this value.
+     */
+    readonly created?: string;
+    /**
+     * The user who saved this bookmark.
+     */
+    readonly created_by?: User;
+    /**
+     * A short plain-text description of the page, usually its meta or Open Graph description.
+     */
+    description?: string;
+    /**
+     * Absolute URL of the page's favicon.
+     */
+    favicon_url?: string;
+    /**
+     * The unique, numeric id of this bookmark.
+     */
+    readonly id?: number;
+    /**
+     * Absolute URL of a preview image, usually the page's Open Graph image.
+     */
+    image_url?: string;
+    /**
+     * The labels on this bookmark. Managed through the bookmark labels endpoints, not by writing here.
+     */
+    readonly labels?: Array<Label> | null;
+    /**
+     * HTTP status code from the last link check, 0 if the link has not been checked. Set by the server.
+     */
+    readonly link_status?: number;
+    /**
+     * The name of the site, usually its Open Graph site name.
+     */
+    site_name?: string;
+    /**
+     * Reading status: to_read (default), reference or archived.
+     */
+    status?: 'to_read' | 'reference' | 'archived';
+    /**
+     * The page title. Defaults to the site's host name when left empty.
+     */
+    title?: string;
+    /**
+     * A timestamp when this bookmark was last updated. You cannot change this value.
+     */
+    readonly updated?: string;
+    /**
+     * The address of the saved page. Must be an absolute http or https URL.
+     */
+    url?: string;
+};
+
+export type BookmarkComment = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * The user who wrote the comment. Set from the authenticated user on create; ignored on write.
+     */
+    readonly author?: User;
+    /**
+     * The comment text. May contain HTML.
+     */
+    comment?: string;
+    /**
+     * A timestamp when this comment was created. You cannot change this value.
+     */
+    readonly created?: string;
+    /**
+     * The unique, numeric id of this comment.
+     */
+    readonly id?: number;
+    /**
+     * A timestamp when this comment was last updated. You cannot change this value.
+     */
+    readonly updated?: string;
+};
+
+export type BookmarkCommentReadBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * The user who wrote the comment. Set from the authenticated user on create; ignored on write.
+     */
+    readonly author?: User;
+    /**
+     * The comment text. May contain HTML.
+     */
+    comment?: string;
+    /**
+     * A timestamp when this comment was created. You cannot change this value.
+     */
+    readonly created?: string;
+    /**
+     * The unique, numeric id of this comment.
+     */
+    readonly id?: number;
+    /**
+     * The maximum permission the requesting user has on the parent bookmark. Editing or deleting a comment also requires being its author.
+     */
+    readonly max_permission?: number;
+    /**
+     * A timestamp when this comment was last updated. You cannot change this value.
+     */
+    readonly updated?: string;
+};
+
+export type BookmarkReadBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * When the link was last checked, null if never. Set by the server.
+     */
+    readonly checked_at?: string | null;
+    /**
+     * A timestamp when this bookmark was created. You cannot change this value.
+     */
+    readonly created?: string;
+    /**
+     * The user who saved this bookmark.
+     */
+    readonly created_by?: User;
+    /**
+     * A short plain-text description of the page, usually its meta or Open Graph description.
+     */
+    description?: string;
+    /**
+     * Absolute URL of the page's favicon.
+     */
+    favicon_url?: string;
+    /**
+     * The unique, numeric id of this bookmark.
+     */
+    readonly id?: number;
+    /**
+     * Absolute URL of a preview image, usually the page's Open Graph image.
+     */
+    image_url?: string;
+    /**
+     * The labels on this bookmark. Managed through the bookmark labels endpoints, not by writing here.
+     */
+    readonly labels?: Array<Label> | null;
+    /**
+     * HTTP status code from the last link check, 0 if the link has not been checked. Set by the server.
+     */
+    readonly link_status?: number;
+    /**
+     * The maximum permission the requesting user has on this bookmark: 2 (admin) for the owner, 0 (read) for anyone who sees it through a source link.
+     */
+    readonly max_permission?: number;
+    /**
+     * The name of the site, usually its Open Graph site name.
+     */
+    site_name?: string;
+    /**
+     * Reading status: to_read (default), reference or archived.
+     */
+    status?: 'to_read' | 'reference' | 'archived';
+    /**
+     * The page title. Defaults to the site's host name when left empty.
+     */
+    title?: string;
+    /**
+     * A timestamp when this bookmark was last updated. You cannot change this value.
+     */
+    readonly updated?: string;
+    /**
+     * The address of the saved page. Must be an absolute http or https URL.
+     */
+    url?: string;
+};
+
 export type BotUser = {
     /**
      * A URL to the JSON Schema for this object.
@@ -782,6 +970,21 @@ export type Label = {
     readonly updated?: string;
 };
 
+export type LabelBookmark = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * A timestamp when this label was added to the bookmark. You cannot change this value.
+     */
+    readonly created?: string;
+    /**
+     * The id of the label to put on the bookmark. You must be able to see the label.
+     */
+    label_id?: number;
+};
+
 export type LabelReadBody = {
     /**
      * A URL to the JSON Schema for this object.
@@ -1180,6 +1383,30 @@ export type PaginatedAdminUser = {
      */
     readonly $schema?: string;
     items?: Array<AdminUser> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
+export type PaginatedBookmark = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    items?: Array<Bookmark> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
+export type PaginatedBookmarkComment = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    items?: Array<BookmarkComment> | null;
     page?: number;
     per_page?: number;
     total?: number;
@@ -3636,6 +3863,82 @@ export type AuthorizeResponseWritable = {
     state?: string;
 };
 
+export type BookmarkWritable = {
+    /**
+     * A short plain-text description of the page, usually its meta or Open Graph description.
+     */
+    description?: string;
+    /**
+     * Absolute URL of the page's favicon.
+     */
+    favicon_url?: string;
+    /**
+     * Absolute URL of a preview image, usually the page's Open Graph image.
+     */
+    image_url?: string;
+    /**
+     * The name of the site, usually its Open Graph site name.
+     */
+    site_name?: string;
+    /**
+     * Reading status: to_read (default), reference or archived.
+     */
+    status?: 'to_read' | 'reference' | 'archived';
+    /**
+     * The page title. Defaults to the site's host name when left empty.
+     */
+    title?: string;
+    /**
+     * The address of the saved page. Must be an absolute http or https URL.
+     */
+    url?: string;
+};
+
+export type BookmarkCommentWritable = {
+    /**
+     * The comment text. May contain HTML.
+     */
+    comment?: string;
+};
+
+export type BookmarkCommentReadBodyWritable = {
+    /**
+     * The comment text. May contain HTML.
+     */
+    comment?: string;
+};
+
+export type BookmarkReadBodyWritable = {
+    /**
+     * A short plain-text description of the page, usually its meta or Open Graph description.
+     */
+    description?: string;
+    /**
+     * Absolute URL of the page's favicon.
+     */
+    favicon_url?: string;
+    /**
+     * Absolute URL of a preview image, usually the page's Open Graph image.
+     */
+    image_url?: string;
+    /**
+     * The name of the site, usually its Open Graph site name.
+     */
+    site_name?: string;
+    /**
+     * Reading status: to_read (default), reference or archived.
+     */
+    status?: 'to_read' | 'reference' | 'archived';
+    /**
+     * The page title. Defaults to the site's host name when left empty.
+     */
+    title?: string;
+    /**
+     * The address of the saved page. Must be an absolute http or https URL.
+     */
+    url?: string;
+};
+
 export type BotUserWritable = {
     /**
      * The user's email address. Always empty for bot users.
@@ -3905,6 +4208,13 @@ export type LabelWritable = {
     title?: string;
 };
 
+export type LabelBookmarkWritable = {
+    /**
+     * The id of the label to put on the bookmark. You must be able to see the label.
+     */
+    label_id?: number;
+};
+
 export type LabelReadBodyWritable = {
     /**
      * The label description.
@@ -4046,6 +4356,22 @@ export type PaginatedApiTokenWritable = {
 
 export type PaginatedAdminUserWritable = {
     items?: Array<AdminUserWritable> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
+export type PaginatedBookmarkWritable = {
+    items?: Array<BookmarkWritable> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
+export type PaginatedBookmarkCommentWritable = {
+    items?: Array<BookmarkCommentWritable> | null;
     page?: number;
     per_page?: number;
     total?: number;
@@ -5744,6 +6070,482 @@ export type BackgroundsUnsplashSearchResponses = {
 };
 
 export type BackgroundsUnsplashSearchResponse = BackgroundsUnsplashSearchResponses[keyof BackgroundsUnsplashSearchResponses];
+
+export type BookmarksListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * 1-based page number.
+         */
+        page?: number;
+        /**
+         * Items per page. Defaults to the instance's configured maximum (service.maxitemsperpage, reported as max_items_per_page by /info) and is silently capped at it; asking for more is not an error.
+         */
+        per_page?: number;
+        /**
+         * Search query; filters the list to items matching this string.
+         */
+        q?: string;
+        /**
+         * Only bookmarks with this status.
+         */
+        status?: 'to_read' | 'reference' | 'archived';
+        /**
+         * Only bookmarks with this label.
+         */
+        label_id?: number;
+        /**
+         * Only bookmarks linked as a source to this project.
+         */
+        project_id?: number;
+        /**
+         * Only bookmarks linked as a source to this task.
+         */
+        task_id?: number;
+    };
+    url: '/bookmarks';
+};
+
+export type BookmarksListErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarksListError = BookmarksListErrors[keyof BookmarksListErrors];
+
+export type BookmarksListResponses = {
+    /**
+     * OK
+     */
+    200: PaginatedBookmark;
+};
+
+export type BookmarksListResponse = BookmarksListResponses[keyof BookmarksListResponses];
+
+export type BookmarksCreateData = {
+    body: BookmarkWritable;
+    path?: never;
+    query?: never;
+    url: '/bookmarks';
+};
+
+export type BookmarksCreateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarksCreateError = BookmarksCreateErrors[keyof BookmarksCreateErrors];
+
+export type BookmarksCreateResponses = {
+    /**
+     * Created
+     */
+    201: Bookmark;
+};
+
+export type BookmarksCreateResponse = BookmarksCreateResponses[keyof BookmarksCreateResponses];
+
+export type BookmarkCommentsListData = {
+    body?: never;
+    path: {
+        bookmark: number;
+    };
+    query?: {
+        /**
+         * How rich-text fields are exchanged. See the API description.
+         */
+        format?: 'html' | 'markdown';
+        /**
+         * 1-based page number.
+         */
+        page?: number;
+        /**
+         * Items per page. Defaults to the instance's configured maximum (service.maxitemsperpage, reported as max_items_per_page by /info) and is silently capped at it; asking for more is not an error.
+         */
+        per_page?: number;
+        /**
+         * Search query; filters the list to items matching this string.
+         */
+        q?: string;
+    };
+    url: '/bookmarks/{bookmark}/comments';
+};
+
+export type BookmarkCommentsListErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarkCommentsListError = BookmarkCommentsListErrors[keyof BookmarkCommentsListErrors];
+
+export type BookmarkCommentsListResponses = {
+    /**
+     * OK
+     */
+    200: PaginatedBookmarkComment;
+};
+
+export type BookmarkCommentsListResponse = BookmarkCommentsListResponses[keyof BookmarkCommentsListResponses];
+
+export type BookmarkCommentsCreateData = {
+    body: BookmarkCommentWritable;
+    path: {
+        bookmark: number;
+    };
+    query?: {
+        /**
+         * How rich-text fields are exchanged. See the API description.
+         */
+        format?: 'html' | 'markdown';
+    };
+    url: '/bookmarks/{bookmark}/comments';
+};
+
+export type BookmarkCommentsCreateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarkCommentsCreateError = BookmarkCommentsCreateErrors[keyof BookmarkCommentsCreateErrors];
+
+export type BookmarkCommentsCreateResponses = {
+    /**
+     * Created
+     */
+    201: BookmarkComment;
+};
+
+export type BookmarkCommentsCreateResponse = BookmarkCommentsCreateResponses[keyof BookmarkCommentsCreateResponses];
+
+export type BookmarkCommentsDeleteData = {
+    body?: never;
+    path: {
+        bookmark: number;
+        commentid: number;
+    };
+    query?: never;
+    url: '/bookmarks/{bookmark}/comments/{commentid}';
+};
+
+export type BookmarkCommentsDeleteErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarkCommentsDeleteError = BookmarkCommentsDeleteErrors[keyof BookmarkCommentsDeleteErrors];
+
+export type BookmarkCommentsDeleteResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type BookmarkCommentsDeleteResponse = BookmarkCommentsDeleteResponses[keyof BookmarkCommentsDeleteResponses];
+
+export type BookmarkCommentsReadData = {
+    body?: never;
+    headers?: {
+        /**
+         * Succeeds if the server's resource matches one of the passed values.
+         */
+        'If-Match'?: Array<string> | null;
+        /**
+         * Succeeds if the server's resource matches none of the passed values. On writes, the special value * may be used to match any existing value.
+         */
+        'If-None-Match'?: Array<string> | null;
+        /**
+         * Succeeds if the server's resource date is more recent than the passed date.
+         */
+        'If-Modified-Since'?: string;
+        /**
+         * Succeeds if the server's resource date is older or the same as the passed date.
+         */
+        'If-Unmodified-Since'?: string;
+    };
+    path: {
+        bookmark: number;
+        commentid: number;
+    };
+    query?: {
+        /**
+         * How rich-text fields are exchanged. See the API description.
+         */
+        format?: 'html' | 'markdown';
+    };
+    url: '/bookmarks/{bookmark}/comments/{commentid}';
+};
+
+export type BookmarkCommentsReadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarkCommentsReadError = BookmarkCommentsReadErrors[keyof BookmarkCommentsReadErrors];
+
+export type BookmarkCommentsReadResponses = {
+    /**
+     * OK
+     */
+    200: BookmarkCommentReadBody;
+};
+
+export type BookmarkCommentsReadResponse = BookmarkCommentsReadResponses[keyof BookmarkCommentsReadResponses];
+
+export type PatchBookmarkCommentsReadData = {
+    body: Array<JsonPatchOp> | null;
+    path: {
+        bookmark: number;
+        commentid: number;
+    };
+    query?: never;
+    url: '/bookmarks/{bookmark}/comments/{commentid}';
+};
+
+export type PatchBookmarkCommentsReadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type PatchBookmarkCommentsReadError = PatchBookmarkCommentsReadErrors[keyof PatchBookmarkCommentsReadErrors];
+
+export type PatchBookmarkCommentsReadResponses = {
+    /**
+     * OK
+     */
+    200: BookmarkComment;
+};
+
+export type PatchBookmarkCommentsReadResponse = PatchBookmarkCommentsReadResponses[keyof PatchBookmarkCommentsReadResponses];
+
+export type BookmarkCommentsUpdateData = {
+    body: BookmarkCommentReadBodyWritable;
+    path: {
+        bookmark: number;
+        commentid: number;
+    };
+    query?: {
+        /**
+         * How rich-text fields are exchanged. See the API description.
+         */
+        format?: 'html' | 'markdown';
+    };
+    url: '/bookmarks/{bookmark}/comments/{commentid}';
+};
+
+export type BookmarkCommentsUpdateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarkCommentsUpdateError = BookmarkCommentsUpdateErrors[keyof BookmarkCommentsUpdateErrors];
+
+export type BookmarkCommentsUpdateResponses = {
+    /**
+     * OK
+     */
+    200: BookmarkComment;
+};
+
+export type BookmarkCommentsUpdateResponse = BookmarkCommentsUpdateResponses[keyof BookmarkCommentsUpdateResponses];
+
+export type BookmarkLabelsCreateData = {
+    body: LabelBookmarkWritable;
+    path: {
+        bookmark: number;
+    };
+    query?: never;
+    url: '/bookmarks/{bookmark}/labels';
+};
+
+export type BookmarkLabelsCreateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarkLabelsCreateError = BookmarkLabelsCreateErrors[keyof BookmarkLabelsCreateErrors];
+
+export type BookmarkLabelsCreateResponses = {
+    /**
+     * Created
+     */
+    201: LabelBookmark;
+};
+
+export type BookmarkLabelsCreateResponse = BookmarkLabelsCreateResponses[keyof BookmarkLabelsCreateResponses];
+
+export type BookmarkLabelsDeleteData = {
+    body?: never;
+    path: {
+        bookmark: number;
+        label: number;
+    };
+    query?: never;
+    url: '/bookmarks/{bookmark}/labels/{label}';
+};
+
+export type BookmarkLabelsDeleteErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarkLabelsDeleteError = BookmarkLabelsDeleteErrors[keyof BookmarkLabelsDeleteErrors];
+
+export type BookmarkLabelsDeleteResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type BookmarkLabelsDeleteResponse = BookmarkLabelsDeleteResponses[keyof BookmarkLabelsDeleteResponses];
+
+export type BookmarksDeleteData = {
+    body?: never;
+    path: {
+        id: number;
+    };
+    query?: never;
+    url: '/bookmarks/{id}';
+};
+
+export type BookmarksDeleteErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarksDeleteError = BookmarksDeleteErrors[keyof BookmarksDeleteErrors];
+
+export type BookmarksDeleteResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type BookmarksDeleteResponse = BookmarksDeleteResponses[keyof BookmarksDeleteResponses];
+
+export type BookmarksReadData = {
+    body?: never;
+    headers?: {
+        /**
+         * Succeeds if the server's resource matches one of the passed values.
+         */
+        'If-Match'?: Array<string> | null;
+        /**
+         * Succeeds if the server's resource matches none of the passed values. On writes, the special value * may be used to match any existing value.
+         */
+        'If-None-Match'?: Array<string> | null;
+        /**
+         * Succeeds if the server's resource date is more recent than the passed date.
+         */
+        'If-Modified-Since'?: string;
+        /**
+         * Succeeds if the server's resource date is older or the same as the passed date.
+         */
+        'If-Unmodified-Since'?: string;
+    };
+    path: {
+        id: number;
+    };
+    query?: never;
+    url: '/bookmarks/{id}';
+};
+
+export type BookmarksReadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarksReadError = BookmarksReadErrors[keyof BookmarksReadErrors];
+
+export type BookmarksReadResponses = {
+    /**
+     * OK
+     */
+    200: BookmarkReadBody;
+};
+
+export type BookmarksReadResponse = BookmarksReadResponses[keyof BookmarksReadResponses];
+
+export type PatchBookmarksReadData = {
+    body: Array<JsonPatchOp> | null;
+    path: {
+        id: number;
+    };
+    query?: never;
+    url: '/bookmarks/{id}';
+};
+
+export type PatchBookmarksReadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type PatchBookmarksReadError = PatchBookmarksReadErrors[keyof PatchBookmarksReadErrors];
+
+export type PatchBookmarksReadResponses = {
+    /**
+     * OK
+     */
+    200: Bookmark;
+};
+
+export type PatchBookmarksReadResponse = PatchBookmarksReadResponses[keyof PatchBookmarksReadResponses];
+
+export type BookmarksUpdateData = {
+    body: BookmarkReadBodyWritable;
+    path: {
+        id: number;
+    };
+    query?: never;
+    url: '/bookmarks/{id}';
+};
+
+export type BookmarksUpdateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarksUpdateError = BookmarksUpdateErrors[keyof BookmarksUpdateErrors];
+
+export type BookmarksUpdateResponses = {
+    /**
+     * OK
+     */
+    200: Bookmark;
+};
+
+export type BookmarksUpdateResponse = BookmarksUpdateResponses[keyof BookmarksUpdateResponses];
 
 export type FiltersCreateData = {
     body: SavedFilterWritable;

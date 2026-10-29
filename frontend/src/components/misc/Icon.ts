@@ -93,6 +93,8 @@ import {
 	faCalendarPlus,
 	faFlagCheckered,
 	faInbox,
+	faBookmark,
+	faGlobe,
 } from '@fortawesome/free-solid-svg-icons'
 import {
 	faBellSlash,
@@ -181,6 +183,8 @@ library.add(faPercent)
 library.add(faPlay)
 library.add(faPlus)
 library.add(faInbox)
+library.add(faBookmark)
+library.add(faGlobe)
 library.add(faCalendarRegular)
 library.add(faPowerOff)
 library.add(faRss)

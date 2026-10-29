@@ -33,6 +33,19 @@ const (
 
 // Anything not listed stays off MCP; credentials, account, webhooks, shares, file transfer and admin routes are deliberately absent.
 var exposedOperations = map[string]toolTier{
+	// Johnny's Brain bookmarks
+	"bookmark-comments-create":        catalogTool,
+	"bookmark-comments-delete":        catalogTool,
+	"bookmark-comments-list":          catalogTool,
+	"bookmark-comments-read":          catalogTool,
+	"bookmark-comments-update":        catalogTool,
+	"bookmark-labels-create":          catalogTool,
+	"bookmark-labels-delete":          catalogTool,
+	"bookmarks-create":                typedTool,
+	"bookmarks-delete":                catalogTool,
+	"bookmarks-list":                  typedTool,
+	"bookmarks-read":                  typedTool,
+	"bookmarks-update":                typedTool,
 	"buckets-create":                  catalogTool,
 	"buckets-delete":                  catalogTool,
 	"buckets-list":                    catalogTool,
