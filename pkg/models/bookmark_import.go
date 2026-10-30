@@ -43,14 +43,18 @@ const (
 	bookmarkImportMaxItems    = 500
 	bookmarkImportLabelMaxLen = 50
 	bookmarkImportConcurrency = 3
+
+	bookmarkImportDescriptionMax = 2000
 )
 
 // BookmarkImportItem is one link from an exported bookmarks file.
 type BookmarkImportItem struct {
-	URL     string     `json:"url" maxLength:"2048" doc:"The address. Items that are not absolute http or https URLs are counted as invalid and skipped."`
-	Title   string     `json:"title,omitempty" maxLength:"250" doc:"The title the browser had. Left empty, the page's own title is fetched later."`
-	Added   *time.Time `json:"added,omitempty" doc:"When the link was first bookmarked. Used as the saved date unless it is in the future or before 1995."`
-	Folders []string   `json:"folders,omitempty" maxItems:"20" doc:"The folders the bookmark sat in, outermost first."`
+	URL   string `json:"url" maxLength:"2048" doc:"The address. Items that are not absolute http or https URLs are counted as invalid and skipped."`
+	Title string `json:"title,omitempty" maxLength:"250" doc:"The title the browser had. Left empty, the page's own title is fetched later."`
+	// Notes the file carried for the link (the <DD> line some exports and tools add).
+	Description string     `json:"description,omitempty" maxLength:"20000" doc:"A note about the link, such as why it was saved. Stored as the bookmark's description, so a page fetch never replaces it. Cut to 2000 characters."`
+	Added       *time.Time `json:"added,omitempty" doc:"When the link was first bookmarked. Used as the saved date unless it is in the future or before 1995."`
+	Folders     []string   `json:"folders,omitempty" maxItems:"20" doc:"The folders the bookmark sat in, outermost first."`
 }
 
 // BookmarkImport is a batch of links to import.
@@ -119,7 +123,12 @@ func ImportBookmarks(s *xorm.Session, a web.Auth, in *BookmarkImport) (*Bookmark
 	seen := map[string]bool{}
 	hashes := make([]string, 0, len(in.Items))
 	for _, item := range in.Items {
-		b := &Bookmark{URL: item.URL, Title: item.Title, Status: status}
+		b := &Bookmark{
+			URL:         item.URL,
+			Title:       item.Title,
+			Description: truncateRunes(strings.TrimSpace(item.Description), bookmarkImportDescriptionMax),
+			Status:      status,
+		}
 		if err := b.normalizeAndValidate(); err != nil {
 			if IsErrBookmarkInvalidURL(err) {
 				result.Invalid++

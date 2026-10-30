@@ -129,6 +129,12 @@
 					>
 						{{ bookmark.title }}
 					</RouterLink>
+					<p
+						v-if="bookmark.description"
+						class="jb-bookmark-row__note"
+					>
+						{{ bookmark.description }}
+					</p>
 					<div class="jb-bookmark-row__meta">
 						<span>{{ hostOf(bookmark.url) }}</span>
 						<span
@@ -434,6 +440,19 @@ function setStatus(bookmark: BookmarkResponse, status: BookmarkStatus) {
 	&:hover {
 		color: var(--jb-green);
 	}
+}
+
+.jb-bookmark-row__note {
+	margin: .15rem 0 .1rem;
+	color: var(--grey-500);
+	font-size: .85rem;
+	line-height: 1.4;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	overflow-wrap: anywhere;
 }
 
 .jb-bookmark-row__meta {

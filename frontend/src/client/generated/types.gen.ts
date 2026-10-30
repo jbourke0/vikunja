@@ -413,6 +413,10 @@ export type BookmarkImportItem = {
      */
     added?: string;
     /**
+     * A note about the link, such as why it was saved. Stored as the bookmark's description, so a page fetch never replaces it. Cut to 2000 characters.
+     */
+    description?: string;
+    /**
      * The folders the bookmark sat in, outermost first.
      */
     folders?: Array<string> | null;

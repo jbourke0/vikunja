@@ -19,6 +19,7 @@ package models
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -112,6 +113,24 @@ func TestImportBookmarks(t *testing.T) {
 		require.Len(t, sent, 1)
 		assert.Len(t, sent[0].(*BookmarkBatchSavedEvent).BookmarkIDs, 4)
 		assert.Zero(t, events.CountDispatchedEvents((&BookmarkSavedEvent{}).Name()), "no per-bookmark events: one batch job instead")
+	})
+
+	t.Run("notes become the description, cut to length", func(t *testing.T) {
+		db.LoadAndAssertFixtures(t)
+		s := db.NewSession()
+		defer s.Close()
+
+		long := strings.Repeat("é", bookmarkImportDescriptionMax+500)
+		importAt(t, s, func() (*BookmarkImportResult, error) {
+			return ImportBookmarks(s, u1, &BookmarkImport{Items: []BookmarkImportItem{
+				{URL: "https://example.net/noted", Description: "  Saved source for this task: fix it  "},
+				{URL: "https://example.net/long", Description: long},
+				{URL: "https://example.net/plain"},
+			}})
+		})
+		assert.Equal(t, "Saved source for this task: fix it", loadBookmarkByURL(t, "https://example.net/noted").Description)
+		assert.Len(t, []rune(loadBookmarkByURL(t, "https://example.net/long").Description), bookmarkImportDescriptionMax)
+		assert.Empty(t, loadBookmarkByURL(t, "https://example.net/plain").Description)
 	})
 
 	t.Run("another user's bookmark is not a duplicate", func(t *testing.T) {

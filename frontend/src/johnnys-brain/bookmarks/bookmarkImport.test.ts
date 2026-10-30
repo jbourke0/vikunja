@@ -30,6 +30,53 @@ const CHROME = `<!DOCTYPE NETSCAPE-Bookmark-file-1>
     </DL><p>
 </DL><p>`
 
+const WITH_NOTES = `<!DOCTYPE NETSCAPE-Bookmark-file-1>
+<TITLE>Bookmarks</TITLE>
+<H1>Bookmarks</H1>
+<DL><p>
+ <DT><H3>SEO</H3>
+ <DL><p>
+   <DT><A HREF="https://www.instagram.com/reel/AAA">First &#x27;one&#x27;</A>
+   <DD>Document notes: Go to Search Console &gt; Performance.
+   <DT><A HREF="https://www.instagram.com/reel/BBB">No note here</A>
+   <DT><A HREF="https://www.instagram.com/reel/CCC">Third</A>
+   <DD>Saved source for this task:   fix   the sitemap
+   <DD>A second note line is ignored
+ </DL><p>
+ <DT><H3>Claude</H3>
+ <DD>A note on a folder belongs to no link
+ <DL><p>
+   <DT><A HREF="javascript:alert(1)">Bookmarklet</A>
+   <DD>Note on a skipped link
+   <DT><A HREF="https://example.com/d">Fourth</A>
+   <DD>${'x'.repeat(2500)}
+ </DL><p>
+</DL><p>`
+
+describe('parseBookmarksHtml notes', () => {
+	it('attaches each DD note to the link before it', () => {
+		const {items} = parseBookmarksHtml(WITH_NOTES)
+		const byUrl = Object.fromEntries(items.map(i => [i.url.split('/').pop(), i]))
+
+		expect(byUrl.AAA.description).toBe('Document notes: Go to Search Console > Performance.')
+		expect(byUrl.AAA.title).toBe('First \'one\'')
+		expect(byUrl.BBB.description).toBeUndefined()
+		expect(byUrl.CCC.description).toBe('Saved source for this task: fix the sitemap')
+	})
+
+	it('does not hand a folder note or a skipped link\'s note to another link', () => {
+		const {items, skipped} = parseBookmarksHtml(WITH_NOTES)
+		expect(skipped).toBe(1)
+		expect(items.some(i => i.description?.includes('folder'))).toBe(false)
+		expect(items.some(i => i.description?.includes('skipped link'))).toBe(false)
+	})
+
+	it('cuts very long notes to what the server keeps', () => {
+		const {items} = parseBookmarksHtml(WITH_NOTES)
+		expect(items.find(i => i.url === 'https://example.com/d')?.description).toHaveLength(2000)
+	})
+})
+
 describe('parseBookmarksHtml', () => {
 	it('reads links with their folder paths, titles and dates', () => {
 		const {items, skipped} = parseBookmarksHtml(CHROME)
