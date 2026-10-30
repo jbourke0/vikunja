@@ -102,7 +102,7 @@
 			:class="{'is-loading': showLoading}"
 		>
 			<li
-				v-for="bookmark in bookmarks"
+				v-for="bookmark in visibleBookmarks"
 				:key="bookmark.id"
 				class="jb-bookmark-row"
 			>
@@ -188,6 +188,14 @@
 						<Icon icon="archive" />
 						<span class="is-sr-only">{{ $t('johnnysBrain.bookmarks.archive') }}</span>
 					</BaseButton>
+					<BaseButton
+						class="jb-icon-button jb-icon-button--danger"
+						:title="$t('johnnysBrain.bookmarks.delete')"
+						@click="removeBookmark(bookmark)"
+					>
+						<Icon icon="trash-alt" />
+						<span class="is-sr-only">{{ $t('johnnysBrain.bookmarks.delete') }}</span>
+					</BaseButton>
 				</div>
 			</li>
 		</ul>
@@ -195,9 +203,10 @@
 </template>
 
 <script setup lang="ts">
-import {computed, reactive, ref} from 'vue'
+import {computed, onBeforeUnmount, reactive, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useQuery} from '@tanstack/vue-query'
+import {useQuery, useQueryClient} from '@tanstack/vue-query'
+import {notify} from '@kyvg/vue3-notification'
 import {refDebounced} from '@vueuse/core'
 
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -208,13 +217,15 @@ import {
 	type BookmarkResponse,
 	type BookmarkStatus,
 	bookmarksQuery,
+	bookmarkKeys,
 	brokenCountQuery,
 	hostOf,
 	pageProblem,
 	useUpdateBookmarkMutation,
 } from '@/client/queries/bookmarks'
 import {useRouter} from 'vue-router'
-import {success} from '@/message'
+import {error, success} from '@/message'
+import {bookmarksDelete} from '@/client/generated'
 import {useSaveLink} from './useSaveLink'
 
 const props = defineProps<{
@@ -266,6 +277,52 @@ async function save() {
 		router.push({name: 'bookmarks.detail', params: {bookmarkId: saved.bookmark.id}})
 	}
 }
+
+// Quick delete: the row goes at once and the delete itself waits a few seconds, so Undo is a
+// real undo (labels, notes and links are still there) rather than a re-create.
+const UNDO_MS = 5000
+const queryClient = useQueryClient()
+const pendingDeletes = reactive(new Map<number, ReturnType<typeof setTimeout>>())
+const visibleBookmarks = computed(() => bookmarks.value.filter(b => !pendingDeletes.has(b.id as number)))
+
+async function commitDelete(id: number) {
+	const timer = pendingDeletes.get(id)
+	if (timer === undefined) return
+	clearTimeout(timer)
+	try {
+		await bookmarksDelete({path: {id}})
+		queryClient.removeQueries({queryKey: bookmarkKeys.detail(id), exact: true})
+	} catch (e) {
+		error(e)
+	} finally {
+		pendingDeletes.delete(id)
+		await Promise.all([
+			queryClient.invalidateQueries({queryKey: bookmarkKeys.lists()}),
+			queryClient.invalidateQueries({queryKey: bookmarkKeys.brokenCount()}),
+		])
+	}
+}
+
+function removeBookmark(bookmark: BookmarkResponse) {
+	const id = bookmark.id as number
+	if (pendingDeletes.has(id)) return
+	pendingDeletes.set(id, setTimeout(() => commitDelete(id), UNDO_MS))
+	notify({
+		type: 'success',
+		title: t('johnnysBrain.bookmarks.deletedTitle'),
+		text: t('johnnysBrain.bookmarks.deletedUndo', {title: bookmark.title}),
+		duration: UNDO_MS,
+		data: {actions: [{title: t('johnnysBrain.bookmarks.undo'), callback: () => {
+			clearTimeout(pendingDeletes.get(id))
+			pendingDeletes.delete(id)
+		}}]},
+	})
+}
+
+// Leaving the page keeps the delete the person asked for.
+onBeforeUnmount(() => {
+	for (const id of Array.from(pendingDeletes.keys())) commitDelete(id)
+})
 
 const updateMutation = useUpdateBookmarkMutation()
 
@@ -513,6 +570,10 @@ function setStatus(bookmark: BookmarkResponse, status: BookmarkStatus) {
 	&:hover {
 		color: var(--jb-green);
 		background: var(--grey-100);
+	}
+
+	&--danger:hover {
+		color: var(--danger);
 	}
 }
 

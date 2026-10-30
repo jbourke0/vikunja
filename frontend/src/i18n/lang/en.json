@@ -1825,6 +1825,10 @@
       "save": "Save",
       "saved": "Bookmark saved.",
       "deleted": "Bookmark deleted.",
+      "delete": "Delete",
+      "deletedTitle": "Deleted",
+      "deletedUndo": "\"{title}\" deleted.",
+      "undo": "Undo",
       "statusFilter": "Reading status",
       "status": {
         "to_read": "To read",
