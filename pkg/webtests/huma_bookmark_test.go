@@ -516,3 +516,46 @@ func TestHumaBookmarkSnapshotAndBroken(t *testing.T) {
 	assert.Equal(t, []int64{1}, labelIDsFromReadAll(t, rec.Body.Bytes()), "only the 404; a 403 is not a broken link")
 	assert.EqualValues(t, 1, totalFromReadAll(t, rec.Body.Bytes()))
 }
+
+func TestHumaBookmarkDuplicateGroups(t *testing.T) {
+	e, err := setupTestEnv()
+	require.NoError(t, err)
+	token := humaTokenFor(t, &testuser1)
+
+	// Two of user 1's bookmarks (1 and 6) that carry the same note, plus a suggestion row between them.
+	s := db.NewSession()
+	_, err = s.Exec("UPDATE bookmarks SET description = 'PSST Guide resource for 3. CleanYourTV: your TV, minus the ads.' WHERE id IN (1, 6)")
+	require.NoError(t, err)
+	_, err = s.Exec("DELETE FROM bookmark_duplicates")
+	require.NoError(t, err)
+	_, err = s.Exec("INSERT INTO bookmark_duplicates (bookmark_id, duplicate_id, score, reason, explanation, status, detected_at) VALUES (1, 6, 0.8, 'similar', '', 'open', CURRENT_TIMESTAMP)")
+	require.NoError(t, err)
+	require.NoError(t, s.Commit())
+	s.Close()
+
+	rec := humaRequest(t, e, http.MethodGet, "/api/v2/bookmarks/duplicate-groups", "", token, "")
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	var groups []struct {
+		Bookmarks []struct {
+			ID int64 `json:"id"`
+		} `json:"bookmarks"`
+		Pairs []struct {
+			BookmarkID  int64 `json:"bookmark_id"`
+			DuplicateID int64 `json:"duplicate_id"`
+		} `json:"pairs"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &groups))
+	require.Len(t, groups, 1, "the route is not mistaken for /bookmarks/{bookmark}")
+	require.Len(t, groups[0].Bookmarks, 2)
+	assert.Equal(t, int64(1), groups[0].Bookmarks[0].ID)
+	assert.Equal(t, int64(6), groups[0].Bookmarks[1].ID)
+	require.Len(t, groups[0].Pairs, 1)
+
+	rec = humaRequest(t, e, http.MethodGet, "/api/v2/bookmarks/duplicate-groups", "", "", "")
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/bookmarks/duplicates/scan", "", token, "")
+	assert.Equal(t, http.StatusAccepted, rec.Code, rec.Body.String())
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/bookmarks/duplicates/scan", "", "", "")
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+}

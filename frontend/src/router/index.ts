@@ -432,6 +432,11 @@ const router = createRouter({
 			}),
 		},
 		{
+			path: '/bookmarks/duplicates',
+			name: 'bookmarks.duplicates',
+			component: () => import('@/johnnys-brain/bookmarks/DuplicateGroups.vue'),
+		},
+		{
 			path: '/bookmarks/import',
 			name: 'bookmarks.import',
 			component: () => import('@/johnnys-brain/bookmarks/ImportBookmarks.vue'),

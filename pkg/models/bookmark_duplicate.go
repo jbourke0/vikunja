@@ -193,12 +193,31 @@ func detectDuplicates(ctx context.Context, s *xorm.Session, bookmarkID int64, ju
 		return err
 	}
 
+	// Links that carry the same note are the same thing from different pages, unless the note is
+	// shared by so many that it is boilerplate.
+	subjectNote := normalisedNote(subject)
+	sameNote := map[int64]bool{}
+	if subjectNote != "" {
+		for _, other := range others {
+			if normalisedNote(other) == subjectNote {
+				sameNote[other.ID] = true
+			}
+		}
+		if len(sameNote)+1 > duplicateSameNoteMaxGroup {
+			sameNote = map[int64]bool{}
+		}
+	}
+
 	candidates := make([]duplicateCandidate, 0, len(others))
 	for _, other := range others {
 		if dismissed[other.ID] {
 			continue
 		}
-		if score := localDuplicateScore(subject, other); score >= duplicateCandidateFloor {
+		score := localDuplicateScore(subject, other)
+		if sameNote[other.ID] && score < duplicateSameNoteScore {
+			score = duplicateSameNoteScore
+		}
+		if score >= duplicateCandidateFloor {
 			candidates = append(candidates, duplicateCandidate{bookmark: other, score: score})
 		}
 	}

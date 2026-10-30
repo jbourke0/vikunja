@@ -21,6 +21,7 @@ import (
 	"net/http"
 
 	"code.vikunja.io/api/pkg/db"
+	"code.vikunja.io/api/pkg/events"
 	"code.vikunja.io/api/pkg/models"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -28,6 +29,10 @@ import (
 
 type bookmarkDuplicatesBody struct {
 	Body []*models.BookmarkDuplicateSuggestion
+}
+
+type bookmarkDuplicateGroupsBody struct {
+	Body []*models.BookmarkDuplicateGroup
 }
 
 type bookmarkMergeInput struct {
@@ -57,6 +62,25 @@ func RegisterBookmarkDuplicateRoutes(api huma.API) {
 		Tags:          tags,
 		DefaultStatus: http.StatusNoContent,
 	}, bookmarkDuplicatesDismiss)
+
+	Register(api, huma.Operation{
+		OperationID: "bookmark-duplicate-groups",
+		Summary:     "List your bookmarks that look like duplicates, in groups",
+		Description: "Gathers the open duplicate suggestions among your own bookmarks into groups of links about the same thing, biggest group first, so a group can be reviewed and merged into one bookmark. Links that carry the same note are grouped too, unless the note is shared by many.",
+		Method:      http.MethodGet,
+		Path:        "/bookmarks/duplicate-groups",
+		Tags:        tags,
+	}, bookmarkDuplicateGroups)
+
+	Register(api, huma.Operation{
+		OperationID:   "bookmark-duplicates-scan",
+		Summary:       "Check all your bookmarks for duplicates again",
+		Description:   "Queues a background check of every bookmark you own, using only the free local comparison, and returns 202 straight away. Read the duplicate groups again a little later. Pairs you dismissed are never suggested again.",
+		Method:        http.MethodPost,
+		Path:          "/bookmarks/duplicates/scan",
+		Tags:          tags,
+		DefaultStatus: http.StatusAccepted,
+	}, bookmarkDuplicatesScan)
 
 	Register(api, huma.Operation{
 		OperationID:   "bookmarks-merge",
@@ -129,4 +153,38 @@ func bookmarksMerge(ctx context.Context, in *struct {
 		return nil, translateDomainError(err)
 	}
 	return &singleBody[models.Bookmark]{Body: merged}, nil
+}
+
+func bookmarkDuplicateGroups(ctx context.Context, _ *struct{}) (*bookmarkDuplicateGroupsBody, error) {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	s := db.NewSession()
+	defer s.Close()
+
+	groups, err := models.GetBookmarkDuplicateGroups(s, a)
+	if err != nil {
+		return nil, translateDomainError(err)
+	}
+	return &bookmarkDuplicateGroupsBody{Body: groups}, nil
+}
+
+func bookmarkDuplicatesScan(ctx context.Context, _ *struct{}) (*emptyBody, error) {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	s := db.NewSession()
+	defer s.Close()
+
+	if err := models.RequestBookmarkDuplicateScan(s, a); err != nil {
+		_ = s.Rollback()
+		return nil, translateDomainError(err)
+	}
+	if err := s.Commit(); err != nil {
+		return nil, translateDomainError(err)
+	}
+	events.DispatchPending(ctx, s)
+	return &emptyBody{}, nil
 }

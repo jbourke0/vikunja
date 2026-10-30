@@ -10,6 +10,16 @@
 			>{{ $t('johnnysBrain.bookmarks.count', {count: bookmarks.length}, bookmarks.length) }}</span>
 			<span class="jb-bookmarks__links">
 				<RouterLink
+					:to="{name: 'bookmarks.duplicates'}"
+					class="jb-bookmarks__share"
+				>
+					{{ $t('johnnysBrain.duplicates.cleanupLink') }}
+					<span
+						v-if="duplicateGroupCount > 0"
+						class="jb-bookmarks__tab-count"
+					>{{ duplicateGroupCount }}</span>
+				</RouterLink>
+				<RouterLink
 					:to="{name: 'bookmarks.import'}"
 					class="jb-bookmarks__share"
 				>
@@ -77,6 +87,14 @@
 					>{{ brokenCount }}</span>
 				</RouterLink>
 			</nav>
+			<BaseButton
+				v-if="bookmarks.length > 0"
+				class="jb-bookmarks__select-toggle"
+				:class="{'is-active': selecting}"
+				@click="toggleSelecting"
+			>
+				{{ selecting ? $t('johnnysBrain.bookmarks.selectDone') : $t('johnnysBrain.bookmarks.select') }}
+			</BaseButton>
 			<label class="jb-bookmarks__search">
 				<span class="is-sr-only">{{ $t('johnnysBrain.bookmarks.search') }}</span>
 				<Icon icon="search" />
@@ -105,7 +123,18 @@
 				v-for="bookmark in visibleBookmarks"
 				:key="bookmark.id"
 				class="jb-bookmark-row"
+				:class="{'is-selecting': selecting, 'is-selected': selected.has(bookmark.id)}"
+				@click.capture="onRowClick($event, bookmark)"
 			>
+				<input
+					v-if="selecting"
+					type="checkbox"
+					class="jb-bookmark-row__check"
+					:checked="selected.has(bookmark.id)"
+					:aria-label="$t('johnnysBrain.bookmarks.selectRow', {title: bookmark.title})"
+					@click.stop
+					@change="toggleSelected(bookmark.id)"
+				>
 				<span class="jb-bookmark-row__icon">
 					<img
 						v-if="bookmark.favicon_url && !brokenIcons.has(bookmark.id)"
@@ -199,6 +228,29 @@
 				</div>
 			</li>
 		</ul>
+
+		<div
+			v-if="selecting"
+			class="jb-bookmarks__bulk"
+			role="toolbar"
+		>
+			<span class="jb-bookmarks__bulk-count">{{ $t('johnnysBrain.bookmarks.selectedCount', {count: selected.size}) }}</span>
+			<BaseButton
+				class="jb-bookmarks__bulk-link"
+				@click="selectAll"
+			>
+				{{ $t('johnnysBrain.bookmarks.selectAll') }}
+			</BaseButton>
+			<XButton
+				variant="secondary"
+				class="jb-bookmarks__bulk-delete"
+				:disabled="selected.size === 0"
+				@click="deleteSelected"
+			>
+				<Icon icon="trash-alt" />
+				{{ $t('johnnysBrain.bookmarks.deleteSelected') }}
+			</XButton>
+		</div>
 	</div>
 </template>
 
@@ -219,6 +271,7 @@ import {
 	bookmarksQuery,
 	bookmarkKeys,
 	brokenCountQuery,
+	duplicateGroupsQuery,
 	hostOf,
 	pageProblem,
 	useUpdateBookmarkMutation,
@@ -258,6 +311,8 @@ const query = useQuery(computed(() => bookmarksQuery({status: props.status, q: d
 const bookmarks = computed(() => query.data.value ?? [])
 const brokenCountQueryResult = useQuery(brokenCountQuery())
 const brokenCount = computed(() => brokenCountQueryResult.data.value ?? 0)
+const duplicateGroupsResult = useQuery(duplicateGroupsQuery())
+const duplicateGroupCount = computed(() => duplicateGroupsResult.data.value?.length ?? 0)
 const isPending = computed(() => query.isPending.value)
 const showLoading = useDelayedLoading(computed(() => query.isFetching.value))
 
@@ -303,20 +358,75 @@ async function commitDelete(id: number) {
 	}
 }
 
-function removeBookmark(bookmark: BookmarkResponse) {
-	const id = bookmark.id as number
-	if (pendingDeletes.has(id)) return
-	pendingDeletes.set(id, setTimeout(() => commitDelete(id), UNDO_MS))
+function removeBookmarks(list: BookmarkResponse[]) {
+	const ids = list.map(b => b.id as number).filter(id => !pendingDeletes.has(id))
+	if (ids.length === 0) return
+	for (const id of ids) {
+		pendingDeletes.set(id, setTimeout(() => commitDelete(id), UNDO_MS))
+		selected.delete(id)
+	}
 	notify({
 		type: 'success',
 		title: t('johnnysBrain.bookmarks.deletedTitle'),
-		text: t('johnnysBrain.bookmarks.deletedUndo', {title: bookmark.title}),
+		text: ids.length === 1
+			? t('johnnysBrain.bookmarks.deletedUndo', {title: list.find(b => b.id === ids[0])?.title ?? ''})
+			: t('johnnysBrain.bookmarks.deletedMany', {count: ids.length}),
 		duration: UNDO_MS,
 		data: {actions: [{title: t('johnnysBrain.bookmarks.undo'), callback: () => {
-			clearTimeout(pendingDeletes.get(id))
-			pendingDeletes.delete(id)
+			for (const id of ids) {
+				clearTimeout(pendingDeletes.get(id))
+				pendingDeletes.delete(id)
+			}
 		}}]},
 	})
+}
+
+function removeBookmark(bookmark: BookmarkResponse) {
+	removeBookmarks([bookmark])
+}
+
+// Select mode: tick several rows (shift-click for a range), then delete them in one go.
+const selecting = ref(false)
+const selected = reactive(new Set<number>())
+let lastToggled: number | null = null
+
+function toggleSelecting() {
+	selecting.value = !selecting.value
+	selected.clear()
+	lastToggled = null
+}
+
+function toggleSelected(id: number) {
+	if (selected.has(id)) selected.delete(id)
+	else selected.add(id)
+	lastToggled = id
+}
+
+function onRowClick(event: MouseEvent, bookmark: BookmarkResponse) {
+	if (!selecting.value) return
+	// In select mode a click ticks the row instead of opening it.
+	event.preventDefault()
+	event.stopPropagation()
+	const id = bookmark.id as number
+	if (event.shiftKey && lastToggled !== null) {
+		const ids = visibleBookmarks.value.map(b => b.id as number)
+		const from = ids.indexOf(lastToggled)
+		const to = ids.indexOf(id)
+		if (from !== -1 && to !== -1) {
+			for (const between of ids.slice(Math.min(from, to), Math.max(from, to) + 1)) selected.add(between)
+			lastToggled = id
+			return
+		}
+	}
+	toggleSelected(id)
+}
+
+function selectAll() {
+	for (const b of visibleBookmarks.value) selected.add(b.id as number)
+}
+
+function deleteSelected() {
+	removeBookmarks(visibleBookmarks.value.filter(b => selected.has(b.id as number)))
 }
 
 // Leaving the page keeps the delete the person asked for.
@@ -556,6 +666,76 @@ function setStatus(bookmark: BookmarkResponse, status: BookmarkStatus) {
 	display: flex;
 	gap: .25rem;
 	flex-shrink: 0;
+}
+
+.jb-bookmarks__select-toggle {
+	margin-inline-start: auto;
+	margin-inline-end: .5rem;
+	padding: .35rem .9rem;
+	border-radius: 999px;
+	color: var(--grey-500);
+	font-size: .9rem;
+	font-weight: 500;
+
+	&:hover,
+	&.is-active {
+		color: var(--jb-green);
+		background: var(--grey-100);
+	}
+}
+
+.jb-bookmark-row__check {
+	flex: 0 0 auto;
+	align-self: center;
+	inline-size: 1.1rem;
+	block-size: 1.1rem;
+	margin-inline-end: .25rem;
+	accent-color: var(--jb-green);
+	cursor: pointer;
+}
+
+.jb-bookmark-row.is-selecting {
+	cursor: pointer;
+	user-select: none;
+}
+
+.jb-bookmark-row.is-selected {
+	background: color-mix(in srgb, var(--jb-green) 10%, transparent);
+}
+
+.jb-bookmarks__bulk {
+	position: sticky;
+	inset-block-end: 1rem;
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	margin-block-start: 1rem;
+	padding: .65rem 1rem;
+	border-radius: var(--jb-radius-card, 20px);
+	border: 1px solid var(--grey-200);
+	background: var(--scheme-main, var(--white));
+	box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
+}
+
+.jb-bookmarks__bulk-count {
+	font-weight: 600;
+}
+
+.jb-bookmarks__bulk-link {
+	color: var(--grey-500);
+	font-size: .9rem;
+
+	&:hover {
+		color: var(--jb-green);
+	}
+}
+
+.jb-bookmarks__bulk-delete {
+	margin-inline-start: auto;
+
+	&:not(:disabled):hover {
+		color: var(--danger);
+	}
 }
 
 .jb-icon-button {

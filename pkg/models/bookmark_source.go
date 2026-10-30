@@ -260,4 +260,5 @@ func registerBookmarkListeners() {
 	events.RegisterListener((&ProjectDeletedEvent{}).Name(), cleanup)
 	events.RegisterListener((&BookmarkSavedEvent{}).Name(), &ProcessSavedBookmark{})
 	events.RegisterListener((&BookmarkBatchSavedEvent{}).Name(), &ProcessImportedBookmarks{})
+	events.RegisterListener((&BookmarkDuplicateScanEvent{}).Name(), &ScanBookmarkDuplicates{})
 }

@@ -365,6 +365,28 @@ export type BookmarkCommentReadBody = {
     readonly updated?: string;
 };
 
+export type BookmarkDuplicateGroup = {
+    /**
+     * The bookmarks in the group, oldest first.
+     */
+    bookmarks?: Array<Bookmark> | null;
+    /**
+     * The suggested pairs within the group, so a group can be dismissed as a whole.
+     */
+    pairs?: Array<BookmarkDuplicatePair> | null;
+};
+
+export type BookmarkDuplicatePair = {
+    /**
+     * One bookmark of the pair.
+     */
+    bookmark_id?: number;
+    /**
+     * The other bookmark of the pair.
+     */
+    duplicate_id?: number;
+};
+
 export type BookmarkDuplicateSuggestion = {
     /**
      * The other bookmark that looks like a duplicate.
@@ -4118,6 +4140,17 @@ export type BookmarkCommentReadBodyWritable = {
     comment?: string;
 };
 
+export type BookmarkDuplicateGroupWritable = {
+    /**
+     * The bookmarks in the group, oldest first.
+     */
+    bookmarks?: Array<BookmarkWritable> | null;
+    /**
+     * The suggested pairs within the group, so a group can be dismissed as a whole.
+     */
+    pairs?: Array<BookmarkDuplicatePair> | null;
+};
+
 export type BookmarkDuplicateSuggestionWritable = {
     /**
      * The other bookmark that looks like a duplicate.
@@ -6456,6 +6489,54 @@ export type BookmarksCreateResponses = {
 };
 
 export type BookmarksCreateResponse = BookmarksCreateResponses[keyof BookmarksCreateResponses];
+
+export type BookmarkDuplicateGroupsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/bookmarks/duplicate-groups';
+};
+
+export type BookmarkDuplicateGroupsErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarkDuplicateGroupsError = BookmarkDuplicateGroupsErrors[keyof BookmarkDuplicateGroupsErrors];
+
+export type BookmarkDuplicateGroupsResponses = {
+    /**
+     * OK
+     */
+    200: Array<BookmarkDuplicateGroup> | null;
+};
+
+export type BookmarkDuplicateGroupsResponse = BookmarkDuplicateGroupsResponses[keyof BookmarkDuplicateGroupsResponses];
+
+export type BookmarkDuplicatesScanData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/bookmarks/duplicates/scan';
+};
+
+export type BookmarkDuplicatesScanErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type BookmarkDuplicatesScanError = BookmarkDuplicatesScanErrors[keyof BookmarkDuplicatesScanErrors];
+
+export type BookmarkDuplicatesScanResponses = {
+    /**
+     * Accepted
+     */
+    202: unknown;
+};
 
 export type BookmarksImportData = {
     body: BookmarkImportWritable;

@@ -6,8 +6,10 @@ import {
 	bookmarkCommentsCreate,
 	bookmarkCommentsDelete,
 	bookmarkCommentsList,
+	bookmarkDuplicateGroups,
 	bookmarkDuplicatesDismiss,
 	bookmarkDuplicatesList,
+	bookmarkDuplicatesScan,
 	bookmarkLabelsCreate,
 	bookmarkLabelsDelete,
 	bookmarkProjectsCreate,
@@ -88,6 +90,7 @@ export const bookmarkKeys = {
 	duplicates: (id: number) => [...bookmarkKeys.all, 'duplicates', id] as const,
 	snapshot: (id: number) => [...bookmarkKeys.all, 'snapshot', id] as const,
 	brokenCount: () => [...bookmarkKeys.all, 'broken-count'] as const,
+	duplicateGroups: () => [...bookmarkKeys.all, 'duplicate-groups'] as const,
 }
 
 function cleanFilters(filters: BookmarkFilters): BookmarkFilters {
@@ -445,6 +448,88 @@ export function mergeBookmarksMutationOptions() {
 		]),
 		successMessage: () => i18n.global.t('johnnysBrain.bookmarks.merged'),
 	})
+}
+
+// Groups of bookmarks that look like the same thing, for the clean-up screen.
+export type DuplicateGroup = {
+	bookmarks: BookmarkResponse[]
+	pairs: {bookmarkId: number, duplicateId: number}[]
+}
+
+export function duplicateGroupsQuery() {
+	return queryOptions({
+		queryKey: bookmarkKeys.duplicateGroups(),
+		queryFn: async (): Promise<DuplicateGroup[]> => {
+			const {data} = await bookmarkDuplicateGroups()
+			return (data ?? []).map(group => ({
+				bookmarks: (group.bookmarks ?? []).map(b => normalizeBookmark(b)),
+				pairs: (group.pairs ?? []).map(p => ({bookmarkId: p.bookmark_id ?? 0, duplicateId: p.duplicate_id ?? 0})),
+			}))
+		},
+	})
+}
+
+function invalidateGroups(client: QueryClient) {
+	return Promise.all([
+		client.invalidateQueries({queryKey: bookmarkKeys.duplicateGroups()}),
+		client.invalidateQueries({queryKey: bookmarkKeys.lists()}),
+	])
+}
+
+/** Folds every other bookmark of a group into the one to keep, one after another. */
+export function keepOneOfGroupMutationOptions() {
+	return contextMutationOptions({
+		mutationFn: async ({keepId, otherIds}: {keepId: number, otherIds: number[]}) => {
+			for (const otherId of otherIds) {
+				await bookmarksMerge({path: {bookmark: keepId}, body: {source_id: otherId}})
+			}
+			return otherIds.length
+		},
+		onSuccess: (_count, {keepId, otherIds}, client) => {
+			for (const id of otherIds) {
+				client.removeQueries({queryKey: bookmarkKeys.detail(id), exact: true})
+				client.removeQueries({queryKey: bookmarkKeys.comments(id), exact: true})
+				client.removeQueries({queryKey: bookmarkKeys.duplicates(id), exact: true})
+			}
+			client.removeQueries({queryKey: bookmarkKeys.detail(keepId), exact: true})
+		},
+		onSettled: (_count, client) => invalidateGroups(client),
+		successMessage: (count: number) => i18n.global.t('johnnysBrain.duplicates.groupMerged', {count}),
+	})
+}
+
+/** Says a whole group is not a duplicate, so none of its pairs are suggested again. */
+export function dismissGroupMutationOptions() {
+	return contextMutationOptions({
+		mutationFn: async (pairs: DuplicateGroup['pairs']) => {
+			for (const pair of pairs) {
+				await bookmarkDuplicatesDismiss({path: {bookmark: pair.bookmarkId, other: pair.duplicateId}})
+			}
+		},
+		onSettled: (_data, client) => invalidateGroups(client),
+	})
+}
+
+/** Checks every bookmark for duplicates again, in the background. */
+export function scanDuplicatesMutationOptions() {
+	return contextMutationOptions({
+		mutationFn: async () => {
+			await bookmarkDuplicatesScan()
+		},
+		successMessage: () => i18n.global.t('johnnysBrain.duplicates.scanStarted'),
+	})
+}
+
+export function useKeepOneOfGroupMutation() {
+	return useMutation(keepOneOfGroupMutationOptions())
+}
+
+export function useDismissGroupMutation() {
+	return useMutation(dismissGroupMutationOptions())
+}
+
+export function useScanDuplicatesMutation() {
+	return useMutation(scanDuplicatesMutationOptions())
 }
 
 export function useDismissBookmarkDuplicateMutation() {
