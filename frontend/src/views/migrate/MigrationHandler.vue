@@ -74,7 +74,11 @@
 							:key="i"
 						/>
 					</div>
-					<Logo class="logo" />
+					<img
+						:src="avatarUrl"
+						alt=""
+						class="logo"
+					>
 				</div>
 				<p>{{ $t('migrate.inProgress') }}</p>
 			</div>
@@ -149,7 +153,7 @@ export default {
 import {computed, nextTick, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 
-import Logo from '@/assets/logo.svg?component'
+import avatarUrl from '@/assets/johnnys-brain/avatar.png'
 import Message from '@/components/misc/Message.vue'
 import MigrationCredentialsForm, {type PlankaCredentials} from './MigrationCredentialsForm.vue'
 
@@ -307,6 +311,7 @@ function confirmMigrateAgain() {
 	display: block;
 	max-block-size: 100px;
 	max-inline-size: 100px;
+	border-radius: 50%;
 }
 
 .progress-dots {

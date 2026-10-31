@@ -207,7 +207,7 @@ async function deleteToken(token: ApiToken) {
 			<div class="bot-header">
 				<strong>{{ bot.username }}</strong>
 				<template v-if="editingName[bot.id]">
-					<span class="bot-name-edit">—</span>
+					<span class="bot-name-edit">-</span>
 					<input
 						v-model="nameDraft[bot.id]"
 						v-focus
@@ -230,7 +230,7 @@ async function deleteToken(token: ApiToken) {
 					</XButton>
 				</template>
 				<template v-else>
-					<span v-if="bot.name">— {{ bot.name }}</span>
+					<span v-if="bot.name">({{ bot.name }})</span>
 					<span
 						v-else
 						class="no-name"

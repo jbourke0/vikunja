@@ -234,7 +234,7 @@
         "createToken": "Create a CalDAV token",
         "tokenCreated": "Here is your new token: {token}",
         "deleteSuccess": "The CalDAV token was deleted successfully.",
-        "wontSeeItAgain": "Write it down or save it securely — you will not be able to see it again.",
+        "wontSeeItAgain": "Write it down or save it securely. You will not be able to see it again.",
         "mustUseToken": "You need to create a CalDAV token to use CalDAV with any third-party client. Enter the token in the password field of your client.",
         "usernameIs": "Your username for CalDAV is: {0}",
         "apiTokenHint": "You can also use an API token with CalDAV permission. Create one in {link}."
@@ -1104,7 +1104,7 @@
       "overdue": "Show overdue tasks",
       "fromuntil": "Tasks from {from} until {until}",
       "select": "Select a date range",
-      "noTasks": "Nothing to do — Have a nice day!",
+      "noTasks": "Nothing to do. Have a nice day!",
       "filterByLabel": "Filtering by label {label}",
       "clearLabelFilter": "Clear label filter",
       "savedFilterIgnored": "Your saved homepage filter is not applied while viewing tasks by label."
