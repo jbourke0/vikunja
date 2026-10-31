@@ -1852,6 +1852,8 @@
       "titleLabel": "Title",
       "labels": "Labels",
       "addLabel": "Add label",
+      "createLabel": "Create new label...",
+      "newLabelName": "New label name",
       "removeLabel": "Remove label {label}",
       "noLabels": "No labels",
       "description": "Description",

@@ -219,7 +219,7 @@
 						</BaseButton>
 					</span>
 					<select
-						v-if="canEdit && availableLabels.length"
+						v-if="canEdit && !creatingLabel"
 						class="jb-bookmark__add-label"
 						:aria-label="$t('johnnysBrain.bookmarks.addLabel')"
 						value=""
@@ -238,9 +238,25 @@
 						>
 							{{ label.title }}
 						</option>
+						<option value="new">
+							{{ $t('johnnysBrain.bookmarks.createLabel') }}
+						</option>
 					</select>
+					<input
+						v-else-if="canEdit"
+						ref="newLabelInput"
+						v-model="newLabelTitle"
+						type="text"
+						class="jb-bookmark__add-label"
+						maxlength="250"
+						:placeholder="$t('johnnysBrain.bookmarks.newLabelName')"
+						:aria-label="$t('johnnysBrain.bookmarks.newLabelName')"
+						@keydown.enter.prevent="createLabel"
+						@keydown.esc="creatingLabel = false"
+						@blur="creatingLabel = false"
+					>
 					<span
-						v-if="!bookmark.labels.length && !(canEdit && availableLabels.length)"
+						v-if="!bookmark.labels.length && !canEdit"
 						class="jb-muted"
 					>{{ $t('johnnysBrain.bookmarks.noLabels') }}</span>
 				</div>
@@ -435,7 +451,7 @@
 </template>
 
 <script setup lang="ts">
-import {computed, reactive, ref, watch} from 'vue'
+import {computed, nextTick, reactive, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import {useQuery} from '@tanstack/vue-query'
@@ -446,6 +462,8 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import XButton from '@/components/input/Button.vue'
 import {useTitle} from '@/composables/useTitle'
 import {useLabels} from '@/composables/useLabels'
+import {useCreateLabelMutation} from '@/client/queries/labels'
+import {getRandomColorHex} from '@/helpers/color/randomColor'
 import {useAuthStore} from '@/stores/auth'
 import {formatDateLong, formatDisplayDate} from '@/helpers/time/formatDate'
 import {
@@ -590,10 +608,34 @@ const availableLabels = computed(() => {
 const addLabelMutation = useAddBookmarkLabelMutation()
 const removeLabelMutation = useRemoveBookmarkLabelMutation()
 
+const createLabelMutation = useCreateLabelMutation()
+const creatingLabel = ref(false)
+const newLabelTitle = ref('')
+const newLabelInput = ref<HTMLInputElement | null>(null)
+
 function addLabel(select: HTMLSelectElement) {
-	const labelId = Number(select.value)
+	const choice = select.value
 	select.value = ''
+	if (choice === 'new') {
+		newLabelTitle.value = ''
+		creatingLabel.value = true
+		nextTick(() => newLabelInput.value?.focus())
+		return
+	}
+	const labelId = Number(choice)
 	if (labelId) addLabelMutation.mutate({bookmarkId: props.bookmarkId, labelId})
+}
+
+async function createLabel() {
+	const title = newLabelTitle.value.trim()
+	if (!title) return
+	// Reuse a label that already has this name instead of making a second one.
+	const existing = allLabels.value.find(l => (l.title ?? '').toLowerCase() === title.toLowerCase())
+	const label = existing ?? await createLabelMutation.mutateAsync({title, hex_color: getRandomColorHex()})
+	creatingLabel.value = false
+	if (label.id && !(bookmark.value?.labels ?? []).some(l => l.id === label.id)) {
+		addLabelMutation.mutate({bookmarkId: props.bookmarkId, labelId: label.id})
+	}
 }
 
 function removeLabel(labelId: number) {
